@@ -19,7 +19,9 @@ class Cart extends Model
     ];
 
     /**
-     * Relationships
+     * ============================
+     * 🔗 RELATIONSHIPS
+     * ============================
      */
 
     // Each cart belongs to one user (nullable for guest users)
@@ -35,19 +37,27 @@ class Cart extends Model
     }
 
     /**
-     * Calculate total subtotal dynamically from items (optional)
+     * ============================
+     * 🧮 HELPER METHODS
+     * ============================
      */
+
+    // Calculate subtotal dynamically from items
     public function calculateSubtotal()
     {
-        return $this->items->sum('total');
+        return $this->items->sum(fn($item) => $item->price * $item->quantity);
     }
 
     /**
-     * Automatically update subtotal when items change (optional hook)
+     * ============================
+     * ⚙️ MODEL HOOKS
+     * ============================
      */
+
     protected static function booted()
     {
         static::saving(function ($cart) {
+            // Automatically recalculate subtotal when items are loaded
             if ($cart->relationLoaded('items')) {
                 $cart->subtotal = $cart->calculateSubtotal();
             }

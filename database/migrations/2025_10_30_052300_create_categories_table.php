@@ -17,7 +17,8 @@ return new class extends Migration
             $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->unsignedBigInteger('parent_id')->nullable()->index();
-            
+            $table->boolean('is_active')->default(true); // ✅ Added this line
+
             // Define foreign key for self-referencing subcategories
             $table->foreign('parent_id')
                   ->references('id')

@@ -10,7 +10,9 @@ class CartItem extends Model
     use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
+     * ====================================
+     * 💾 MASS ASSIGNABLE FIELDS
+     * ====================================
      */
     protected $fillable = [
         'cart_id',
@@ -22,7 +24,9 @@ class CartItem extends Model
     ];
 
     /**
-     * Relationships
+     * ====================================
+     * 🔗 RELATIONSHIPS
+     * ====================================
      */
 
     // Each cart item belongs to a cart
@@ -33,23 +37,38 @@ class CartItem extends Model
 
     // Each cart item belongs to a product
     public function product()
-    {
-        return $this->belongsTo(Product::class);
-    }
+{
+    return $this->belongsTo(Product::class, 'product_id');
+}
 
-    // Each cart item may belong to a variant
+    // Each cart item may belong to a variant (optional)
     public function productVariant()
     {
         return $this->belongsTo(ProductVariant::class);
     }
 
     /**
-     * Automatically calculate total when saving (quantity * price)
+     * ====================================
+     * ⚙️ MODEL HOOKS
+     * ====================================
+     * Automatically calculate total (quantity * price)
+     * every time the item is created or updated.
      */
     protected static function booted()
     {
         static::saving(function ($item) {
             $item->total = $item->quantity * $item->price;
         });
+    }
+
+    /**
+     * ====================================
+     * 🧮 ACCESSORS
+     * ====================================
+     * Get total dynamically (in case 'total' field not saved)
+     */
+    public function getTotalAttribute($value)
+    {
+        return $value ?? ($this->price * $this->quantity);
     }
 }

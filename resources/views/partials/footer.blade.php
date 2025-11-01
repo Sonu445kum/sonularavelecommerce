@@ -1,45 +1,42 @@
-{{-- =============================================
-    partials/footer.blade.php
-    → Clean responsive footer for all pages
-============================================= --}}
-<footer class="bg-gray-900 text-gray-300 mt-5 pt-5 pb-3">
-    <div class="container">
-        <div class="row gy-3">
-            <div class="col-md-3">
-                <h5 class="text-white fw-bold mb-3">MyShop</h5>
-                <p>Buy your favorite products online at best prices. Fast delivery and secure payments.</p>
-            </div>
-            <div class="col-md-3">
-                <h6 class="text-white fw-semibold mb-2">Quick Links</h6>
-                <ul class="list-unstyled">
-                    <li><a href="{{ url('/') }}" class="text-gray-400 hover:text-white text-decoration-none">Home</a></li>
-                    <li><a href="{{ route('products.index') }}" class="text-gray-400 hover:text-white text-decoration-none">Products</a></li>
-                    <li><a href="{{ route('cart.index') }}" class="text-gray-400 hover:text-white text-decoration-none">Cart</a></li>
-                    <li><a href="{{ route('checkout.index') }}" class="text-gray-400 hover:text-white text-decoration-none">Checkout</a></li>
-                </ul>
-            </div>
-            <div class="col-md-3">
-                <h6 class="text-white fw-semibold mb-2">Support</h6>
-                <ul class="list-unstyled">
-                    <li><a href="#" class="text-gray-400 hover:text-white text-decoration-none">Contact Us</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-white text-decoration-none">FAQs</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-white text-decoration-none">Terms & Conditions</a></li>
-                    <li><a href="#" class="text-gray-400 hover:text-white text-decoration-none">Privacy Policy</a></li>
-                </ul>
-            </div>
-            <div class="col-md-3">
-                <h6 class="text-white fw-semibold mb-2">Follow Us</h6>
-                <div class="d-flex gap-3">
-                    <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-facebook"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-instagram"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-twitter-x"></i></a>
-                    <a href="#" class="text-gray-400 hover:text-white"><i class="bi bi-linkedin"></i></a>
-                </div>
+<footer class="bg-gray-900 text-gray-300 mt-10 py-10">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8 px-6">
+        <div>
+            <h5 class="text-white font-bold mb-3 text-lg">MyShop</h5>
+            <p class="text-gray-400 text-sm">Buy your favorite products online at best prices. Fast delivery and secure payments.</p>
+        </div>
+
+        <div>
+            <h6 class="text-white font-semibold mb-2">Quick Links</h6>
+            <ul class="space-y-2 text-sm">
+                <li><a href="{{ url('/') }}" class="hover:text-white">Home</a></li>
+                <li><a href="{{ route('products.index') }}" class="hover:text-white">Products</a></li>
+                <li><a href="{{ route('cart.index') }}" class="hover:text-white">Cart</a></li>
+                <li><a href="{{ route('checkout.index') }}" class="hover:text-white">Checkout</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h6 class="text-white font-semibold mb-2">Support</h6>
+            <ul class="space-y-2 text-sm">
+                <li><a href="#" class="hover:text-white">Contact Us</a></li>
+                <li><a href="#" class="hover:text-white">FAQs</a></li>
+                <li><a href="#" class="hover:text-white">Terms & Conditions</a></li>
+                <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+            </ul>
+        </div>
+
+        <div>
+            <h6 class="text-white font-semibold mb-2">Follow Us</h6>
+            <div class="flex space-x-4 text-xl">
+                <a href="#" class="hover:text-blue-400"><i class="bi bi-facebook"></i></a>
+                <a href="#" class="hover:text-pink-400"><i class="bi bi-instagram"></i></a>
+                <a href="#" class="hover:text-sky-400"><i class="bi bi-twitter-x"></i></a>
+                <a href="#" class="hover:text-blue-600"><i class="bi bi-linkedin"></i></a>
             </div>
         </div>
-        <hr class="border-gray-700 my-4">
-        <div class="text-center text-gray-400 small">
-            © {{ date('Y') }} MyShop. All rights reserved.
-        </div>
+    </div>
+
+    <div class="border-t border-gray-700 mt-8 pt-4 text-center text-gray-500 text-sm">
+        © {{ date('Y') }} MyShop. All rights reserved.
     </div>
 </footer>

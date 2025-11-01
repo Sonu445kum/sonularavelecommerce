@@ -3,50 +3,127 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\Product;
 
 class CartController extends Controller
 {
-    public function index() { $cart = session('cart', []); return view('cart.index', compact('cart')); }
-
-    public function add(Request $req)
+    /**
+     * 🛒 Show logged-in user's cart
+     */
+    public function index()
     {
-        $data = $req->validate(['product_id'=>'required|exists:products,id','quantity'=>'nullable|integer|min:1']);
-        $product = Product::findOrFail($data['product_id']);
-        $cart = session()->get('cart', []);
-        $key = $product->id;
-        $qty = $data['quantity'] ?? 1;
+        $user = Auth::user();
 
-        if(isset($cart[$key])) $cart[$key]['quantity'] += $qty;
-        else $cart[$key] = ['product_id'=>$product->id,'title'=>$product->title,'price'=>$product->price,'quantity'=>$qty];
+        $cart = Cart::with('items.product')->where('user_id', $user->id)->first();
 
-        session()->put('cart', $cart);
-        return back()->with('success','Added to cart');
-    }
-
-    public function update(Request $req)
-    {
-        $data = $req->validate(['key'=>'required','quantity'=>'required|integer|min:1']);
-        $cart = session()->get('cart', []);
-        if(isset($cart[$data['key']])){
-            $cart[$data['key']]['quantity'] = $data['quantity'];
-            session()->put('cart', $cart);
-            return back()->with('success','Cart updated');
+        if (!$cart || $cart->items->isEmpty()) {
+            return view('cart.index', [
+                'cart' => null,
+                'message' => 'Your cart is empty!',
+            ]);
         }
-        return back()->withErrors('Item not found');
+
+        // ✅ Calculate subtotal (reliable)
+        $subtotal = $cart->items->sum(function ($item) {
+            return $item->product->price * $item->quantity;
+        });
+
+        $cart->update(['subtotal' => $subtotal]);
+
+        return view('cart.index', compact('cart', 'subtotal'));
     }
 
-    public function remove(Request $req)
+    /**
+     * ➕ Add Product to Cart
+     */
+    public function add(Request $request)
     {
-        $cart = session()->get('cart', []);
-        unset($cart[$req->key]);
-        session()->put('cart',$cart);
-        return back()->with('success','Removed');
+        // ✅ Validate request
+        $validated = $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'quantity'   => 'required|integer|min:1',
+        ]);
+
+        $user = Auth::user();
+        $product = Product::findOrFail($validated['product_id']);
+
+        // ✅ Get or create user's cart
+        $cart = Cart::firstOrCreate(['user_id' => $user->id]);
+
+        // ✅ Check if product already in cart
+        $cartItem = $cart->items()->where('product_id', $product->id)->first();
+
+        if ($cartItem) {
+            // Update existing item
+            $cartItem->update([
+                'quantity' => $cartItem->quantity + $validated['quantity'],
+                'price' => $product->price,
+            ]);
+        } else {
+            // Create new item
+            $cart->items()->create([
+                'product_id' => $product->id,
+                'quantity'   => $validated['quantity'],
+                'price'      => $product->price,
+            ]);
+        }
+
+        // ✅ Update subtotal
+        $cart->update(['subtotal' => $cart->calculateSubtotal()]);
+
+        return redirect()->back()->with('success', '✅ Product added to cart successfully!');
     }
 
+    /**
+     * 🔄 Update Quantity
+     */
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        $cartItem = CartItem::findOrFail($id);
+        $cartItem->update(['quantity' => $validated['quantity']]);
+
+        // ✅ Update subtotal
+        $cart = $cartItem->cart;
+        $cart->update(['subtotal' => $cart->calculateSubtotal()]);
+
+        return redirect()->back()->with('success', '🛍️ Cart updated successfully!');
+    }
+
+    /**
+     * ❌ Remove Item from Cart
+     */
+    public function remove($id)
+    {
+        $cartItem = CartItem::findOrFail($id);
+        $cart = $cartItem->cart;
+
+        $cartItem->delete();
+
+        // ✅ Update subtotal
+        $cart->update(['subtotal' => $cart->calculateSubtotal()]);
+
+        return redirect()->back()->with('success', '🗑️ Item removed from cart!');
+    }
+
+    /**
+     * 🧹 Clear Entire Cart
+     */
     public function clear()
     {
-        session()->forget('cart');
-        return back()->with('success','Cart cleared');
+        $cart = Cart::where('user_id', Auth::id())->first();
+
+        if ($cart) {
+            $cart->items()->delete();
+            $cart->update(['subtotal' => 0]);
+        }
+
+        return redirect()->back()->with('success', '🧹 Cart cleared successfully!');
     }
 }

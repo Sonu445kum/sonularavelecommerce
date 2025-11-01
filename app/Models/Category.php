@@ -10,9 +10,6 @@ class Category extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'name',
         'slug',
@@ -20,9 +17,6 @@ class Category extends Model
         'parent_id',
     ];
 
-    /**
-     * Automatically generate slug from name if not provided.
-     */
     protected static function boot()
     {
         parent::boot();
@@ -34,35 +28,32 @@ class Category extends Model
         });
     }
 
-    /**
-     * Get the parent category (if any).
-     */
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    /**
-     * Get the subcategories (children).
-     */
     public function children()
     {
         return $this->hasMany(Category::class, 'parent_id');
     }
 
-    /**
-     * Scope for top-level categories only.
-     */
     public function scopeTopLevel($query)
     {
         return $query->whereNull('parent_id');
     }
 
-    /**
-     * Scope for subcategories only.
-     */
     public function scopeSubCategories($query)
     {
         return $query->whereNotNull('parent_id');
+    }
+
+    /**
+     * ✅ Add this missing relation
+     * Each category can have multiple products.
+     */
+    public function products()
+    {
+        return $this->hasMany(Product::class, 'category_id');
     }
 }

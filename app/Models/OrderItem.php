@@ -11,7 +11,7 @@ class OrderItem extends Model
 
     /**
      * =========================================================
-     * Mass Assignable Attributes
+     * ✅ Mass Assignable Attributes
      * =========================================================
      */
     protected $fillable = [
@@ -20,6 +20,7 @@ class OrderItem extends Model
         'product_variant_id',
         'product_name',
         'product_sku',
+        'product_image',
         'quantity',
         'unit_price',
         'total_price',
@@ -28,7 +29,7 @@ class OrderItem extends Model
 
     /**
      * =========================================================
-     * Attribute Casting
+     * ✅ Attribute Casting
      * =========================================================
      */
     protected $casts = [
@@ -39,29 +40,23 @@ class OrderItem extends Model
 
     /**
      * =========================================================
-     * Relationships
+     * ✅ Relationships
      * =========================================================
      */
 
-    /**
-     * 🔹 Each OrderItem belongs to one Order.
-     */
+    // 🔹 Each OrderItem belongs to one Order
     public function order()
     {
         return $this->belongsTo(Order::class);
     }
 
-    /**
-     * 🔹 Each OrderItem belongs to one Product.
-     */
+    // 🔹 Each OrderItem belongs to one Product
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    /**
-     * 🔹 Each OrderItem may belong to one Product Variant (optional).
-     */
+    // 🔹 Optional variant relationship
     public function variant()
     {
         return $this->belongsTo(ProductVariant::class, 'product_variant_id');
@@ -69,54 +64,60 @@ class OrderItem extends Model
 
     /**
      * =========================================================
-     * Accessors & Helper Methods
+     * ✅ Accessors & Helper Methods
      * =========================================================
      */
 
-    /**
-     * 🔹 Dynamically calculate subtotal (quantity × unit price).
-     */
+    // 🔹 Dynamically compute subtotal
     public function getSubtotalAttribute(): float
     {
         return (float) ($this->quantity * $this->unit_price);
     }
 
-    /**
-     * 🔹 Accessor for formatted total price.
-     */
+    // 🔹 Formatted total price (for UI)
     public function getFormattedTotalAttribute(): string
     {
         return number_format($this->total_price, 2);
     }
 
     /**
-     * 🔹 Automatically update total_price when saving or updating.
-     * Ensures no manual calculation errors occur.
+     * =========================================================
+     * ✅ Booted Events — Auto Data Handling
+     * =========================================================
      */
     protected static function booted()
     {
-        static::saving(function (self $item) {
-            $item->total_price = $item->quantity * $item->unit_price;
+        static::creating(function ($item) {
+            $product = $item->product ?? Product::find($item->product_id);
+
+            if ($product) {
+                // 🧩 Auto-fill product details if not set
+                $item->product_name  = $item->product_name  ?? $product->name;
+                $item->product_sku   = $item->product_sku   ?? $product->sku ?? 'N/A';
+                $item->product_image = $item->product_image ?? $product->image ?? 'images/no-image.png';
+                $item->unit_price    = $item->unit_price    ?? $product->price ?? 0;
+            }
+
+            // 🧮 Always calculate total_price
+            $item->total_price = ($item->unit_price ?? 0) * ($item->quantity ?? 1);
+        });
+
+        static::updating(function ($item) {
+            $item->total_price = ($item->unit_price ?? 0) * ($item->quantity ?? 1);
         });
     }
 
     /**
      * =========================================================
-     * Query Scopes
+     * ✅ Query Scopes
      * =========================================================
      */
 
-    /**
-     * 🔹 Scope: Filter by Order ID.
-     */
     public function scopeOfOrder($query, int $orderId)
     {
         return $query->where('order_id', $orderId);
     }
 
-    /**
-     * 🔹 Scope: Filter by Product ID.
-     */
     public function scopeOfProduct($query, int $productId)
     {
         return $query->where('product_id', $productId);
@@ -124,23 +125,20 @@ class OrderItem extends Model
 
     /**
      * =========================================================
-     * Utility Methods
+     * ✅ Utility Methods
      * =========================================================
      */
 
-    /**
-     * 🔹 Check if this order item has an associated product variant.
-     */
+    // 🔹 Check if this item has a variant
     public function hasVariant(): bool
     {
         return !is_null($this->product_variant_id);
     }
 
-    /**
-     * 🔹 Recalculate total manually (if needed externally).
-     */
+    // 🔹 Recalculate and update total price manually
     public function calculateTotal(): float
     {
-        return (float) ($this->quantity * $this->unit_price);
+        $this->total_price = (float) ($this->quantity * $this->unit_price);
+        return $this->total_price;
     }
 }

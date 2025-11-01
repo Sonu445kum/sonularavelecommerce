@@ -52,12 +52,16 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Automatically hash password whenever it's set.
+     * ✅ FIXED: Automatically hash password only if it is not already hashed.
      */
     public function setPasswordAttribute($value)
     {
         if (!empty($value)) {
-            $this->attributes['password'] = bcrypt($value);
+            // Avoid double hashing
+            $this->attributes['password'] = 
+                \Illuminate\Support\Str::startsWith($value, '$2y$')
+                    ? $value
+                    : bcrypt($value);
         }
     }
 
@@ -65,41 +69,35 @@ class User extends Authenticatable implements MustVerifyEmail
      |                        RELATIONSHIPS
      |============================================================ */
 
-    /**
-     * A user can have many orders.
-     */
     public function orders()
     {
         return $this->hasMany(Order::class);
     }
 
-    /**
-     * A user can write multiple product reviews.
-     */
+    public function cart()
+{
+    return $this->hasOne(Cart::class);
+}
+public function cartItems()
+{
+    return $this->hasMany(CartItem::class);
+}
+
     public function reviews()
     {
         return $this->hasMany(Review::class);
     }
 
-    /**
-     * A user can receive many custom notifications.
-     */
     public function notificationsCustom()
     {
         return $this->hasMany(Notification::class);
     }
 
-    /**
-     * A user can have many coupons.
-     */
     public function coupons()
     {
         return $this->belongsToMany(Coupon::class, 'user_coupons')->withTimestamps();
     }
 
-    /**
-     * 🆕 A user can have many wishlist items.
-     */
     public function wishlist()
     {
         return $this->hasMany(Wishlist::class, 'user_id');

@@ -1,28 +1,21 @@
-{{-- =============================================
-    partials/messages.blade.php
-    → Displays success, error, and validation messages
-============================================= --}}
 @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show mt-2">
+    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
         {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
 @if(session('error'))
-    <div class="alert alert-danger alert-dismissible fade show mt-2">
+    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
         {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif
 
 @if ($errors->any())
-    <div class="alert alert-warning alert-dismissible fade show mt-2">
-        <ul class="mb-0">
+    <div class="bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded relative mb-4">
+        <ul class="list-disc pl-5">
             @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
         </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 @endif

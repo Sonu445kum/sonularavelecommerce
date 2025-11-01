@@ -3,119 +3,158 @@
 @section('title', 'All Products')
 
 @section('content')
-<div class="container py-5">
-    <div class="row">
+<div class="container mx-auto px-4 py-10">
 
-        {{-- ===========================
-             FILTER SIDEBAR
-        ============================ --}}
-        <div class="col-md-3 mb-4">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <h5 class="fw-bold mb-3">Filters</h5>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
 
-                    <form method="GET" action="{{ route('products.index') }}">
-                        <div class="mb-3">
-                            <label class="form-label">Search</label>
-                            <input type="text" name="q" value="{{ request('q') }}" class="form-control"
-                                   placeholder="Search products...">
-                        </div>
+        {{-- ==========================
+             🧭 FILTER SIDEBAR
+        =========================== --}}
+        <div class="bg-white shadow-lg rounded-2xl p-6 sticky top-20 h-fit">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-sliders-h text-blue-600"></i> Filters
+            </h2>
 
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select name="category" class="form-select">
-                                <option value="">All Categories</option>
-                                @foreach($categories as $cat)
-                                    <option value="{{ $cat->slug }}" {{ request('category') == $cat->slug ? 'selected' : '' }}>
-                                        {{ $cat->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+            <form method="GET" action="{{ route('products.index') }}" class="space-y-5">
 
-                        <div class="row mb-3">
-                            <div class="col">
-                                <label class="form-label">Min</label>
-                                <input type="number" name="min_price" value="{{ request('min_price') }}" class="form-control" placeholder="0">
-                            </div>
-                            <div class="col">
-                                <label class="form-label">Max</label>
-                                <input type="number" name="max_price" value="{{ request('max_price') }}" class="form-control" placeholder="10000">
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Sort By</label>
-                            <select name="sort" class="form-select">
-                                <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Latest</option>
-                                <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Price: Low to High</option>
-                                <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Price: High to Low</option>
-                            </select>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary w-100 mt-2">Apply Filters</button>
-                        <a href="{{ route('products.index') }}" class="btn btn-outline-secondary w-100 mt-2">Reset</a>
-                    </form>
+                {{-- 🔍 Search --}}
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">Search</label>
+                    <input type="text" name="q" value="{{ request('q') }}" placeholder="Search products..."
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none p-2.5">
                 </div>
-            </div>
+
+                {{-- 🏷 Category --}}
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">Category</label>
+                    <select name="category"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 p-2.5">
+                        <option value="">All Categories</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->slug }}" {{ request('category') == $cat->slug ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- 💰 Price Range --}}
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-1">Min</label>
+                        <input type="number" name="min_price" value="{{ request('min_price') }}" placeholder="0"
+                            class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 p-2.5">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-1">Max</label>
+                        <input type="number" name="max_price" value="{{ request('max_price') }}" placeholder="10000"
+                            class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 p-2.5">
+                    </div>
+                </div>
+
+                {{-- 🔽 Sort --}}
+                <div>
+                    <label class="block text-gray-700 font-medium mb-1">Sort By</label>
+                    <select name="sort"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 p-2.5">
+                        <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Latest</option>
+                        <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Price: Low to High</option>
+                        <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Price: High to Low</option>
+                    </select>
+                </div>
+
+                {{-- Buttons --}}
+                <div class="space-y-3">
+                    <button type="submit"
+                        class="w-full bg-blue-600 text-white py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition duration-300">
+                        Apply Filters
+                    </button>
+
+                    <a href="{{ route('products.index') }}"
+                        class="block text-center border border-gray-300 text-gray-700 py-2.5 rounded-lg hover:bg-gray-100 transition duration-300">
+                        Reset
+                    </a>
+                </div>
+            </form>
         </div>
 
-        {{-- ===========================
-             PRODUCT GRID
-        ============================ --}}
-        <div class="col-md-9">
-            <h3 class="fw-bold mb-4">
-                All Products
-                @if(request('q')) 
-                    <small class="text-muted">for “{{ request('q') }}”</small> 
-                @endif
+        {{-- ==========================
+             🛍 PRODUCT GRID
+        =========================== --}}
+        <div class="md:col-span-3">
+            <h3 class="text-3xl font-bold text-gray-800 mb-8 flex items-center justify-between">
+                <span>
+                    All Products
+                    @if(request('q')) 
+                        <span class="text-gray-500 text-base font-normal">for “{{ request('q') }}”</span>
+                    @endif
+                </span>
+                <span class="text-sm text-gray-600">
+                    Showing {{ $products->count() }} of {{ $products->total() }} results
+                </span>
             </h3>
 
             @if($products->count() > 0)
-                <div class="row g-4">
+                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach ($products as $product)
-                        <div class="col-md-4 mb-4">
-                            <div class="card border-0 shadow-sm hover-shadow-sm">
-                                <img 
-                                    src="{{ $product->featured_image_url }}" 
-                                    alt="{{ $product->title }}" 
-                                    class="card-img-top img-fluid"
-                                    style="width: 100%; height: 250px; object-fit: cover; border-top-left-radius: 0.75rem; border-top-right-radius: 0.75rem;"
-                                    loading="lazy"
-                                />
+                        <div
+                            class="group bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 relative">
 
-                                <div class="card-body text-center">
-                                    <h5 class="card-title fw-bold">{{ $product->title }}</h5>
-                                    <p class="card-text text-muted mb-2">₹{{ $product->price }}</p>
-                                    <a href="{{ route('products.show', $product->slug) }}" class="btn btn-primary btn-sm">
+                            {{-- 🖼 Image --}}
+                            <div class="relative">
+                                <img src="{{ $product->featured_image_url ?? asset('images/no-image.png') }}" 
+                                     alt="{{ $product->title }}" 
+                                     class="w-full h-60 object-cover transition-transform duration-300 group-hover:scale-105">
+                                @if($product->discount > 0)
+                                    <span class="absolute top-3 left-3 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                        -{{ $product->discount }}%
+                                    </span>
+                                @endif
+                            </div>
+
+                            {{-- 📦 Info --}}
+                            <div class="p-4 text-center">
+                                <h5 class="font-semibold text-gray-800 text-lg mb-1 truncate">{{ $product->title }}</h5>
+                                <p class="text-gray-600 mb-2 line-clamp-2">{{ Str::limit($product->description, 60) }}</p>
+                                <div class="flex justify-center items-center gap-2 mb-4">
+                                    <span class="text-blue-600 font-bold text-lg">₹{{ number_format($product->price, 2) }}</span>
+                                    @if($product->old_price)
+                                        <span class="text-gray-400 line-through text-sm">₹{{ number_format($product->old_price, 2) }}</span>
+                                    @endif
+                                </div>
+
+                                {{-- CTA --}}
+                                <div class="flex justify-center gap-2">
+                                    <a href="{{ route('products.show', $product->slug) }}"
+                                        class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition duration-300">
                                         View Details
                                     </a>
+                                    <form action="{{ route('cart.add') }}" method="POST">
+                                    @csrf
+                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                    <input type="hidden" name="quantity" value="1">
+                                    <button type="submit"
+                                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition duration-300">
+                                        Add to Cart
+                                    </button>
+                                </form>
+
                                 </div>
                             </div>
                         </div>
                     @endforeach
                 </div>
 
-                <div class="mt-4">
+                {{-- Pagination --}}
+                <div class="mt-10 flex justify-center">
                     {{ $products->links() }}
                 </div>
             @else
-                <div class="alert alert-warning">
-                    <strong>No products found!</strong> Try adjusting your filters or search.
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 p-5 rounded-lg text-center">
+                    <strong>No products found!</strong> Try adjusting your filters or search terms.
                 </div>
             @endif
         </div>
     </div>
 </div>
-
-<style>
-    .hover-shadow-sm {
-        transition: all 0.3s ease-in-out;
-    }
-
-    .hover-shadow-sm:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
-</style>
 @endsection

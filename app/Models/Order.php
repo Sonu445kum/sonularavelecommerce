@@ -4,16 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory;
 
     /**
-     * The attributes that are mass assignable.
+     * -------------------------------------------------
+     * Mass assignable fields
+     * -------------------------------------------------
      */
     protected $fillable = [
+        'uuid',
         'order_number',
         'user_id',
         'address_id',
@@ -28,35 +31,58 @@ class Order extends Model
     ];
 
     /**
-     * The attributes that should be cast to native types.
+     * -------------------------------------------------
+     * Cast attributes to native types
+     * -------------------------------------------------
      */
     protected $casts = [
-        'meta' => 'array',
-        'subtotal' => 'decimal:2',
-        'shipping' => 'decimal:2',
-        'tax' => 'decimal:2',
-        'discount' => 'decimal:2',
-        'total' => 'decimal:2',
+        'meta'      => 'array',
+        'subtotal'  => 'decimal:2',
+        'shipping'  => 'decimal:2',
+        'tax'       => 'decimal:2',
+        'discount'  => 'decimal:2',
+        'total'     => 'decimal:2',
     ];
 
     /**
-     * ========================================
-     * Model Booted: Auto-generate Order Number
-     * ========================================
+     * -------------------------------------------------
+     * Booted: Auto-generate UUID, Order Number & Total
+     * -------------------------------------------------
      */
     protected static function booted()
     {
+        parent::booted();
+
         static::creating(function ($order) {
+            // 🔹 Auto-generate UUID if missing
+            if (empty($order->uuid)) {
+                $order->uuid = (string) Str::uuid();
+            }
+
+            // 🔹 Auto-generate unique order number
             if (empty($order->order_number)) {
                 $order->order_number = 'ORD-' . strtoupper(uniqid());
+            }
+
+            // 🔹 Auto-calculate total if not provided
+            if (empty($order->total)) {
+                $order->total = ($order->subtotal ?? 0)
+                              + ($order->shipping ?? 0)
+                              + ($order->tax ?? 0)
+                              - ($order->discount ?? 0);
+            }
+
+            // 🔹 Default status
+            if (empty($order->status)) {
+                $order->status = 'Pending';
             }
         });
     }
 
     /**
-     * ========================================
+     * -------------------------------------------------
      * Relationships
-     * ========================================
+     * -------------------------------------------------
      */
 
     // 🔹 Each order belongs to one user
@@ -77,7 +103,7 @@ class Order extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    // 🔹 Each order can have multiple payments (retries, refunds)
+    // 🔹 Each order can have multiple payments
     public function payments()
     {
         return $this->hasMany(Payment::class);
@@ -90,12 +116,12 @@ class Order extends Model
     }
 
     /**
-     * ========================================
-     * Accessors & Helper Methods
-     * ========================================
+     * -------------------------------------------------
+     * Accessors / Helper Methods
+     * -------------------------------------------------
      */
 
-    // 🔹 Get formatted total with 2 decimals
+    // 🔹 Formatted total (2 decimal places)
     public function getFormattedTotalAttribute(): string
     {
         return number_format($this->total, 2);
@@ -110,40 +136,40 @@ class Order extends Model
     // 🔹 Check if order is delivered
     public function isDelivered(): bool
     {
-        return $this->status === 'delivered';
+        return strtolower($this->status) === 'delivered';
     }
 
-    // 🔹 Check if any successful payment exists
+    // 🔹 Check if payment success exists
     public function isPaid(): bool
     {
         return $this->payments()->where('status', 'success')->exists();
     }
 
     /**
-     * ========================================
+     * -------------------------------------------------
      * Query Scopes (for dashboard filters)
-     * ========================================
+     * -------------------------------------------------
      */
 
-    // 🔹 Filter by user
+    // 🔹 Filter orders by user
     public function scopeOfUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }
 
-    // 🔹 Filter by order status
+    // 🔹 Filter by status
     public function scopeStatus($query, $status)
     {
         return $query->where('status', $status);
     }
 
-    // 🔹 Filter orders of current month
+    // 🔹 Current month orders
     public function scopeMonthly($query)
     {
         return $query->whereMonth('created_at', now()->month);
     }
 
-    // 🔹 Calculate total revenue from delivered orders
+    // 🔹 Calculate total revenue
     public function scopeRevenue($query)
     {
         return $query->where('status', 'delivered')->sum('total');

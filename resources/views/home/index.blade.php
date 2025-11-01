@@ -4,84 +4,99 @@
 
 @section('content')
 
-<!-- ============================= -->
-<!-- 🏠 HOME PAGE SECTION START -->
-<!-- ============================= -->
+<div class="container mx-auto mt-6">
 
-<div class="container py-5">
+    {{-- 🎠 Hero Carousel --}}
+    <div id="homeCarousel"
+         class="carousel slide carousel-fade shadow-2xl rounded-3xl overflow-hidden relative"
+         data-bs-ride="carousel"
+         data-bs-interval="3000">
 
-    {{-- ======================= --}}
-    {{-- 🎉 Hero Section --}}
-    {{-- ======================= --}}
-    <div class="text-center mb-5">
-        <h1 class="fw-bold">Welcome to <span class="text-primary">NewEcommerce</span></h1>
-        <p class="text-muted fs-5">Find the best deals on your favorite products!</p>
-        <a href="{{ route('category.show', 'all') }}" class="btn btn-primary px-4">Shop Now</a>
-    </div>
+        {{-- 🔘 Centered Carousel Indicators --}}
+        <div class="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex space-x-3 z-10">
+            @foreach ($sliderImages as $index => $slide)
+                <button type="button"
+                        data-bs-target="#homeCarousel"
+                        data-bs-slide-to="{{ $index }}"
+                        class="w-3 h-3 rounded-full transition-all duration-300 {{ $index === 0 ? 'bg-white scale-125' : 'bg-gray-400 hover:bg-gray-300' }}"
+                        aria-current="{{ $index === 0 ? 'true' : 'false' }}"
+                        aria-label="Slide {{ $index + 1 }}">
+                </button>
+            @endforeach
+        </div>
 
-    {{-- ======================= --}}
-    {{-- 🛍️ Featured Products --}}
-    {{-- ======================= --}}
-    <div class="mb-5">
-        <h2 class="mb-4 border-bottom pb-2">🔥 Featured Products</h2>
+        {{-- 🖼️ Carousel Slides --}}
+        <div class="carousel-inner">
+            @foreach ($sliderImages as $index => $slide)
+                <div class="carousel-item {{ $index === 0 ? 'active' : '' }} relative">
+                    <img src="{{ $slide['url'] }}"
+                         class="d-block w-100 hover:scale-105 transition-transform duration-700 ease-in-out"
+                         alt="Slide {{ $index + 1 }}"
+                         style="height: 550px; object-fit: cover;">
 
-        @if($featuredProducts->count() > 0)
-            <div class="row g-4">
-                @foreach($featuredProducts as $product)
-                    <div class="col-md-3 col-sm-6">
-                        <div class="card h-100 shadow-sm border-0">
-                            <a href="{{ route('product.show', $product->slug) }}">
-                                <img src="{{ asset('storage/' . $product->image) }}" class="card-img-top" alt="{{ $product->title }}">
-                            </a>
-                            <div class="card-body text-center">
-                                <h5 class="card-title text-truncate">{{ $product->title }}</h5>
-                                <p class="text-muted mb-1">₹{{ number_format($product->price, 2) }}</p>
-                                <a href="{{ route('product.show', $product->slug) }}" class="btn btn-sm btn-outline-primary mt-2">
-                                    View Details
-                                </a>
-                            </div>
-                        </div>
+                    {{-- 🌈 Gradient Overlay --}}
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+
+                    {{-- ✨ Animated Captions --}}
+                    <div class="carousel-caption absolute bottom-28 text-center">
+                        <h2 class="text-white font-bold text-4xl md:text-5xl mb-3 animate__animated animate__fadeInDown">
+                            {{ $slide['caption'] }}
+                        </h2>
+                        <p class="text-gray-200 text-lg mb-4 animate__animated animate__fadeInUp">
+                            {{ $slide['subtext'] }}
+                        </p>
+                        <a href="{{ route('products.index') }}" 
+                        class="btn btn-primary px-4 py-2 rounded-md text-white hover:bg-blue-700 transition">
+                        🛒 Shop Now
+                        </a>
                     </div>
-                @endforeach
-            </div>
-        @else
-            <p class="text-muted">No featured products available right now.</p>
-        @endif
+                </div>
+            @endforeach
+        </div>
+
+        {{-- ◀️ ▶️ Controls --}}
+        <button class="carousel-control-prev" type="button" data-bs-target="#homeCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon bg-gray-800 rounded-full p-2" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+
+        <button class="carousel-control-next" type="button" data-bs-target="#homeCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon bg-gray-800 rounded-full p-2" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
     </div>
 
-    {{-- ======================= --}}
-    {{-- 🗂️ Browse Categories --}}
-    {{-- ======================= --}}
-    <div>
-        <h2 class="mb-4 border-bottom pb-2">🛒 Browse by Categories</h2>
+    {{-- ✨ Feature Section --}}
+    <section class="mt-20 text-center">
+        <h2 class="text-4xl font-bold text-gray-800 mb-10 tracking-tight">Why Shop With Us?</h2>
 
-        @if($categories->count() > 0)
-            <div class="row g-4">
-                @foreach($categories as $category)
-                    <div class="col-md-4 col-sm-6">
-                        <div class="card text-center shadow-sm border-0">
-                            <a href="{{ route('category.show', $category->slug) }}">
-                                <img src="{{ asset('storage/' . $category->image) }}" class="card-img-top" alt="{{ $category->name }}">
-                            </a>
-                            <div class="card-body">
-                                <h5 class="card-title">{{ $category->name }}</h5>
-                                <a href="{{ route('category.show', $category->slug) }}" class="btn btn-outline-secondary btn-sm">
-                                    Explore
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @else
-            <p class="text-muted">No categories available at the moment.</p>
-        @endif
-    </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            @foreach ($features as $feature)
+                <div class="group bg-white shadow-lg hover:shadow-2xl transition transform hover:-translate-y-2 rounded-2xl p-8 flex flex-col items-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-t from-blue-50/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-700"></div>
+                    <div class="text-6xl mb-3 transition-transform group-hover:scale-110">{{ $feature['icon'] }}</div>
+                    <h3 class="text-xl font-semibold mb-2 text-gray-800">{{ $feature['title'] }}</h3>
+                    <p class="text-gray-600 text-sm">{{ $feature['desc'] }}</p>
+                </div>
+            @endforeach
+        </div>
+    </section>
 
 </div>
 
-<!-- ============================= -->
-<!-- 🏠 HOME PAGE SECTION END -->
-<!-- ============================= -->
+{{-- ✅ Auto Slide Script --}}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const carousel = document.querySelector('#homeCarousel');
+        if (carousel) {
+            new bootstrap.Carousel(carousel, {
+                interval: 3000,
+                ride: 'carousel',
+                pause: false,
+                wrap: true
+            });
+        }
+    });
+</script>
 
 @endsection

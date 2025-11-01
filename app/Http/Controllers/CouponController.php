@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Session;
 class CouponController extends Controller
 {
     /**
-     * Apply a coupon code to the current cart.
+     * ✅ Apply a coupon code to the current user's cart.
      */
-    public function applyCoupon(Request $request)
+    public function apply(Request $request)
     {
         $request->validate([
             'code' => 'required|string|exists:coupons,code',
@@ -19,6 +19,7 @@ class CouponController extends Controller
             'code.exists' => 'Invalid coupon code. Please try again.',
         ]);
 
+        // 🔍 Find the active & valid coupon
         $coupon = Coupon::where('code', $request->code)
             ->where('is_active', true)
             ->where(function ($query) {
@@ -31,10 +32,10 @@ class CouponController extends Controller
             return back()->with('error', 'Coupon is invalid or expired.');
         }
 
-        // Store coupon data in session
+        // 💾 Store coupon data in session
         Session::put('coupon', [
             'code' => $coupon->code,
-            'discount_type' => $coupon->discount_type,
+            'discount_type' => $coupon->discount_type, // 'fixed' or 'percent'
             'discount_value' => $coupon->discount_value,
         ]);
 
@@ -42,9 +43,9 @@ class CouponController extends Controller
     }
 
     /**
-     * Remove the applied coupon.
+     * 🧹 Remove the applied coupon.
      */
-    public function removeCoupon()
+    public function remove()
     {
         if (Session::has('coupon')) {
             Session::forget('coupon');
@@ -55,8 +56,10 @@ class CouponController extends Controller
     }
 
     /**
-     * Helper: calculate discount based on cart total.
-     * You can use this in checkout or order calculation logic.
+     * 💡 Helper Function — Calculate discount for checkout or order page.
+     *
+     * @param float $cartTotal
+     * @return float $discount
      */
     public static function calculateDiscount($cartTotal)
     {
@@ -73,6 +76,6 @@ class CouponController extends Controller
             $discount = ($cartTotal * $coupon['discount_value']) / 100;
         }
 
-        return $discount;
+        return min($discount, $cartTotal); // prevent negative totals
     }
 }
