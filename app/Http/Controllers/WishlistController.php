@@ -29,8 +29,8 @@ class WishlistController extends Controller
     {
         $user = Auth::user();
 
-        // Fetch user’s wishlist with product details
-        $items = Wishlist::with('product')
+        // Fetch user's wishlist with product details
+        $items = Wishlist::with(['product.images'])
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(20);

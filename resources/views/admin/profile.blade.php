@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'Profile')
 
@@ -19,13 +19,9 @@
                     alt="Profile Image"
                     class="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
                 >
-                <form action="{{ route('admin.profile.upload') }}" method="POST" enctype="multipart/form-data" class="absolute bottom-0 right-0">
-                    @csrf
-                    <label for="profile_image" class="cursor-pointer bg-blue-600 text-white rounded-full p-2 shadow hover:bg-blue-700">
-                        <i class="fas fa-camera"></i>
-                    </label>
-                    <input type="file" id="profile_image" name="profile_image" class="hidden" onchange="this.form.submit()">
-                </form>
+                <a href="{{ route('admin.profile.edit') }}" class="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-2 shadow hover:bg-blue-700">
+                    <i class="fas fa-camera"></i>
+                </a>
             </div>
         </div>
 

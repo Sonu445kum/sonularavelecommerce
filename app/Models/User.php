@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 
@@ -168,9 +169,14 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted()
     {
         static::deleting(function ($user) {
-            // Clean up tokens on user delete
-            if (method_exists($user, 'tokens')) {
-                $user->tokens()->delete();
+            // Clean up tokens on user delete (if table exists)
+            try {
+                if (method_exists($user, 'tokens') && Schema::hasTable('personal_access_tokens')) {
+                    $user->tokens()->delete();
+                }
+            } catch (\Exception $e) {
+                // Silently fail if table doesn't exist or token deletion fails
+                // This allows user deletion to proceed even if tokens table is missing
             }
         });
     }

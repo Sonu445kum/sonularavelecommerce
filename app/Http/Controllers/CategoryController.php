@@ -35,6 +35,43 @@ class CategoryController extends Controller
 
     /**
      * ----------------------------------------------------
+     * 👨‍💼 ADMIN INDEX METHOD
+     * ----------------------------------------------------
+     * Displays all categories for admin management
+     */
+    public function adminIndex()
+    {
+        $categories = Category::with('children')->latest()->paginate(20);
+        return view('admin.categories.index', compact('categories'));
+    }
+
+    /**
+     * ----------------------------------------------------
+     * ➕ CREATE METHOD
+     * ----------------------------------------------------
+     * Shows the form to create a new category
+     */
+    public function create()
+    {
+        $categories = Category::whereNull('parent_id')->get();
+        return view('admin.categories.create', compact('categories'));
+    }
+
+    /**
+     * ----------------------------------------------------
+     * ✏️ EDIT METHOD
+     * ----------------------------------------------------
+     * Shows the form to edit an existing category
+     */
+    public function edit($id)
+    {
+        $category = Category::findOrFail($id);
+        $categories = Category::whereNull('parent_id')->where('id', '!=', $id)->get();
+        return view('admin.categories.edit', compact('category', 'categories'));
+    }
+
+    /**
+     * ----------------------------------------------------
      * 🛍️ SHOW METHOD
      * ----------------------------------------------------
      * Handles:

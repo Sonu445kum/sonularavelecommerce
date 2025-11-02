@@ -45,13 +45,36 @@
                         <div class="flex flex-wrap items-center gap-3 mt-4">
                             @foreach($order->items->take(3) as $item)
                                 @php
-                                    $imagePath = $item->product_image
-                                        ? asset('storage/' . $item->product_image)
-                                        : ($item->product?->image ? asset('storage/' . $item->product->image) : asset('images/no-image.png'));
+                                    // Try product_image from order item first (stored at order time)
+                                    $imageUrl = null;
+                                    if ($item->product_image) {
+                                        $imagePath = $item->product_image;
+                                        $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                            ? $imagePath
+                                            : asset('storage/' . ltrim($imagePath, '/'));
+                                    }
+                                    // Fallback to product's featured_image
+                                    elseif ($item->product && $item->product->featured_image) {
+                                        $imagePath = $item->product->featured_image;
+                                        $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                            ? $imagePath
+                                            : asset('storage/' . ltrim($imagePath, '/'));
+                                    }
+                                    // Fallback to first image from images relationship
+                                    elseif ($item->product && $item->product->images && $item->product->images->count() > 0) {
+                                        $imagePath = $item->product->images->first()->path;
+                                        $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                            ? $imagePath
+                                            : asset('storage/' . ltrim($imagePath, '/'));
+                                    }
+                                    // Final fallback
+                                    $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+                                    $productName = $item->product_name ?? $item->product->title ?? $item->product->name ?? 'Product';
                                 @endphp
-                                <img src="{{ $imagePath }}" 
-                                     alt="{{ $item->product_name ?? $item->product?->name ?? 'Product' }}"
-                                     class="w-12 h-12 rounded-md border object-cover">
+                                <img src="{{ $imageUrl }}" 
+                                     alt="{{ $productName }}"
+                                     class="w-12 h-12 rounded-md border object-cover"
+                                     onerror="this.src='{{ asset('images/default-product.jpg') }}'">
                             @endforeach
 
                             {{-- If more than 3 items --}}

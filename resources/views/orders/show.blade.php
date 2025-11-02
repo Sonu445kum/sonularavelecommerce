@@ -40,18 +40,41 @@
                     <div class="flex items-center space-x-4">
                         {{-- ✅ Image Fallback --}}
                         @php
-                            $imagePath = $item->product_image 
-                                ? asset('storage/' . $item->product_image)
-                                : ($item->product?->image ? asset('storage/' . $item->product->image) : asset('images/no-image.png'));
+                            // Try product_image from order item first (stored at order time)
+                            $imageUrl = null;
+                            if ($item->product_image) {
+                                $imagePath = $item->product_image;
+                                $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                    ? $imagePath
+                                    : asset('storage/' . ltrim($imagePath, '/'));
+                            }
+                            // Fallback to product's featured_image
+                            elseif ($item->product && $item->product->featured_image) {
+                                $imagePath = $item->product->featured_image;
+                                $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                    ? $imagePath
+                                    : asset('storage/' . ltrim($imagePath, '/'));
+                            }
+                            // Fallback to first image from images relationship
+                            elseif ($item->product && $item->product->images && $item->product->images->count() > 0) {
+                                $imagePath = $item->product->images->first()->path;
+                                $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                    ? $imagePath
+                                    : asset('storage/' . ltrim($imagePath, '/'));
+                            }
+                            // Final fallback
+                            $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+                            $productName = $item->product_name ?? $item->product->title ?? $item->product->name ?? 'Product Name';
                         @endphp
 
-                        <img src="{{ $imagePath }}" 
-                             alt="{{ $item->product_name ?? $item->product?->name ?? 'Product Image' }}" 
-                             class="w-16 h-16 rounded-md object-cover border">
+                        <img src="{{ $imageUrl }}" 
+                             alt="{{ $productName }}" 
+                             class="w-16 h-16 rounded-md object-cover border"
+                             onerror="this.src='{{ asset('images/default-product.jpg') }}'">
 
                         <div>
                             <p class="font-semibold text-gray-800">
-                                {{ $item->product_name ?? $item->product?->name ?? 'Product Name' }}
+                                {{ $productName }}
                             </p>
                             <p class="text-gray-500 text-sm">SKU: {{ $item->product_sku ?? 'N/A' }}</p>
                             <p class="text-gray-500 text-sm">Qty: {{ $item->quantity }}</p>

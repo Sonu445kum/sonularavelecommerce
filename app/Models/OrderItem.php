@@ -92,9 +92,18 @@ class OrderItem extends Model
 
             if ($product) {
                 // 🧩 Auto-fill product details if not set
-                $item->product_name  = $item->product_name  ?? $product->name;
+                $item->product_name  = $item->product_name  ?? $product->title ?? $product->name ?? 'Product';
                 $item->product_sku   = $item->product_sku   ?? $product->sku ?? 'N/A';
-                $item->product_image = $item->product_image ?? $product->image ?? 'images/no-image.png';
+                // Use featured_image first, then first image from images relationship
+                if (!$item->product_image) {
+                    if ($product->featured_image) {
+                        $item->product_image = $product->featured_image;
+                    } elseif ($product->images && $product->images->count() > 0) {
+                        $item->product_image = $product->images->first()->path;
+                    } else {
+                        $item->product_image = 'images/default-product.jpg';
+                    }
+                }
                 $item->unit_price    = $item->unit_price    ?? $product->price ?? 0;
             }
 

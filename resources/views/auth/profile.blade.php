@@ -159,14 +159,38 @@
                         @else
                             <div class="row g-3">
                                 @foreach($wishlist as $item)
+                                    @php
+                                        // Try featured_image first, then first image from images relationship, then fallback
+                                        $imageUrl = null;
+                                        if ($item->product) {
+                                            if ($item->product->featured_image) {
+                                                $imagePath = $item->product->featured_image;
+                                                $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                                    ? $imagePath
+                                                    : asset('storage/' . ltrim($imagePath, '/'));
+                                            }
+                                            // Fallback to first image in images relationship
+                                            elseif ($item->product->images && $item->product->images->count() > 0) {
+                                                $imagePath = $item->product->images->first()->path;
+                                                $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                                    ? $imagePath
+                                                    : asset('storage/' . ltrim($imagePath, '/'));
+                                            }
+                                        }
+                                        // Final fallback
+                                        $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+                                        $productName = $item->product->title ?? $item->product->name ?? 'Product';
+                                    @endphp
                                     <div class="col-md-4">
                                         <div class="card h-100 shadow-sm border-0">
-                                            <img src="{{ asset($item->product->image ?? 'https://via.placeholder.com/200') }}" 
-                                                 class="card-img-top" alt="{{ $item->product->name }}">
+                                            <img src="{{ $imageUrl }}" 
+                                                 class="card-img-top" 
+                                                 alt="{{ $productName }}"
+                                                 onerror="this.src='{{ asset('images/default-product.jpg') }}'">
                                             <div class="card-body text-center">
-                                                <h6 class="card-title">{{ $item->product->name }}</h6>
+                                                <h6 class="card-title">{{ $productName }}</h6>
                                                 <p class="text-muted mb-2">₹{{ number_format($item->product->price, 2) }}</p>
-                                                <a href="{{ route('products.show', $item->product->id) }}" class="btn btn-sm btn-primary">
+                                                <a href="{{ route('products.show', $item->product->slug) }}" class="btn btn-sm btn-primary">
                                                     View Product
                                                 </a>
                                             </div>

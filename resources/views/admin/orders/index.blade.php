@@ -23,28 +23,34 @@
             <tr>
                 <td>#{{ $order->id }}</td>
                 <td>{{ $order->user->name ?? 'Guest' }}</td>
-                <td>₹{{ $order->total_amount }}</td>
+                <td>₹{{ number_format($order->total, 2) }}</td>
                 <td>
                     <span class="badge 
-                        @if($order->status == 'pending') bg-warning
-                        @elseif($order->status == 'completed') bg-success
+                        @if(strtolower($order->status) == 'pending') bg-warning
+                        @elseif(in_array(strtolower($order->status), ['completed', 'delivered'])) bg-success
                         @else bg-secondary
                         @endif">
                         {{ ucfirst($order->status) }}
                     </span>
                 </td>
-                <td>{{ ucfirst($order->payment_method) }}</td>
+                <td>{{ $order->latestPayment->method ?? 'N/A' }}</td>
                 <td>{{ $order->created_at->format('d M Y') }}</td>
                 <td>
                     <a href="{{ route('admin.orders.show', $order->id) }}" class="btn btn-sm btn-info">View</a>
-                    <form action="{{ route('admin.orders.destroy', $order->id) }}" method="POST" style="display:inline;">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-danger" onclick="return confirm('Delete this order?')">Delete</button>
-                    </form>
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
+
+    {{-- Pagination --}}
+    <div class="mt-4">
+        {{ $orders->links('pagination::bootstrap-5') }}
+    </div>
+
+    {{-- Orders Count Info --}}
+    <div class="mt-2 text-muted">
+        <small>Showing {{ $orders->firstItem() ?? 0 }} to {{ $orders->lastItem() ?? 0 }} of {{ $orders->total() }} orders</small>
+    </div>
 </div>
 @endsection

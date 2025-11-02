@@ -6,15 +6,32 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Order;
 
-class OrderController extends Controller
+class AdminOrderController extends Controller
 {
+    /**
+     * Display a listing of orders for admin.
+     */
+    public function adminIndex()
+    {
+        $orders = Order::with(['user', 'latestPayment'])->latest()->paginate(20);
+        return view('admin.orders.index', compact('orders'));
+    }
+
     /**
      * Display a listing of orders.
      */
     public function index()
     {
-        $orders = Order::latest()->paginate(10);
-        return view('admin.orders.index', compact('orders'));
+        return $this->adminIndex();
+    }
+
+    /**
+     * Display a specific order for admin.
+     */
+    public function adminShow($id)
+    {
+        $order = Order::with(['user', 'orderItems.product'])->findOrFail($id);
+        return view('admin.orders.show', compact('order'));
     }
 
     /**
@@ -22,8 +39,7 @@ class OrderController extends Controller
      */
     public function show($id)
     {
-        $order = Order::with(['user', 'orderItems.product'])->findOrFail($id);
-        return view('admin.orders.show', compact('order'));
+        return $this->adminShow($id);
     }
 
     /**
@@ -32,11 +48,12 @@ class OrderController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|string|in:pending,processing,completed,cancelled',
+            'status' => 'required|string|in:pending,processing,shipped,delivered,cancelled,refunded',
         ]);
 
         $order = Order::findOrFail($id);
-        $order->update(['status' => $request->status]);
+        $order->status = $request->status;
+        $order->save();
 
         return redirect()->back()->with('success', 'Order status updated successfully.');
     }

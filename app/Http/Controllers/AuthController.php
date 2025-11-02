@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Order;
 use App\Models\Wishlist;
+use RealRashid\SweetAlert\Facades\Alert; // ✅ Add this line
 
 class AuthController extends Controller
 {
@@ -39,8 +40,9 @@ class AuthController extends Controller
             'is_active' => true,
         ]);
 
-        return redirect()->route('login.form')
-            ->with('success', 'Registration successful! Please log in to continue.');
+        Alert::success('Success 🎉', 'Registration successful! Please log in to continue.');
+
+        return redirect()->route('login.form');
     }
 
     // 🔑 Show Login Form
@@ -61,20 +63,23 @@ class AuthController extends Controller
         $user = User::where('email', $credentials['email'])->first();
 
         if (!$user) {
-            return back()->withErrors(['email' => 'No account found with that email.']);
+            Alert::error('Error ❌', 'No account found with that email.');
+            return back();
         }
 
         if (isset($user->is_active) && !$user->is_active) {
-            return back()->withErrors(['email' => 'Your account is inactive. Please contact support.']);
+            Alert::warning('Account Inactive ⚠️', 'Please contact support.');
+            return back();
         }
 
         if (Auth::attempt($credentials, $req->boolean('remember'))) {
             $req->session()->regenerate();
-            return redirect()->intended(route('home'))
-                ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
+            Alert::success('Welcome Back 👋', 'Hello, ' . Auth::user()->name . '!');
+            return redirect()->intended(route('home'));
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials, please try again.']);
+        Alert::error('Invalid Credentials', 'Please try again.');
+        return back();
     }
 
     /* ===========================
@@ -91,9 +96,13 @@ class AuthController extends Controller
         $request->validate(['email' => 'required|email|exists:users,email']);
         $status = Password::sendResetLink($request->only('email'));
 
-        return $status === Password::RESET_LINK_SENT
-            ? back()->with('success', 'Password reset link has been sent to your email!')
-            : back()->withErrors(['email' => __($status)]);
+        if ($status === Password::RESET_LINK_SENT) {
+            Alert::success('Email Sent 📧', 'Password reset link sent successfully!');
+            return back();
+        }
+
+        Alert::error('Failed ❌', __($status));
+        return back();
     }
 
     public function showResetForm(Request $request, $token)
@@ -122,9 +131,13 @@ class AuthController extends Controller
             }
         );
 
-        return $status === Password::PASSWORD_RESET
-            ? redirect()->route('login.form')->with('success', 'Password has been reset successfully!')
-            : back()->withErrors(['email' => __($status)]);
+        if ($status === Password::PASSWORD_RESET) {
+            Alert::success('Password Reset 🔐', 'Password has been reset successfully!');
+            return redirect()->route('login.form');
+        }
+
+        Alert::error('Failed ❌', __($status));
+        return back();
     }
 
     /* ===========================
@@ -137,25 +150,20 @@ class AuthController extends Controller
         $req->session()->invalidate();
         $req->session()->regenerateToken();
 
-        return redirect()->route('home')->with('success', 'Logged out successfully!');
+        Alert::info('Logged Out 👋', 'You have logged out successfully!');
+        return redirect()->route('home');
     }
 
     /* ===========================
      👤 PROFILE SECTION
     ============================*/
 
-    // 👤 Show Profile Page (with Orders + Wishlist)
     public function profile()
     {
         $user = Auth::user();
 
-        $orders = Order::where('user_id', $user->id)
-            ->latest()
-            ->get();
-
-        $wishlist = Wishlist::where('user_id', $user->id)
-            ->with('product') // eager load product data
-            ->get();
+        $orders = Order::where('user_id', $user->id)->latest()->get();
+        $wishlist = Wishlist::where('user_id', $user->id)->with(['product.images'])->get();
 
         return view('auth.profile', compact('user', 'orders', 'wishlist'));
     }
@@ -182,7 +190,8 @@ class AuthController extends Controller
 
         $user->save();
 
-        return back()->with('success', 'Profile updated successfully ✅');
+        Alert::success('Profile Updated ✅', 'Your profile has been updated successfully.');
+        return back();
     }
 
     // 🖼️ Update Avatar
@@ -194,16 +203,15 @@ class AuthController extends Controller
 
         $user = Auth::user();
 
-        // Delete old avatar if exists
         if ($user->avatar && file_exists(public_path($user->avatar))) {
             unlink(public_path($user->avatar));
         }
 
-        // Upload new avatar
         $path = $req->file('avatar')->store('avatars', 'public');
         $user->avatar = 'storage/' . $path;
         $user->save();
 
-        return back()->with('success', 'Profile picture updated successfully 📸');
+        Alert::success('Avatar Updated 📸', 'Profile picture updated successfully!');
+        return back();
     }
 }

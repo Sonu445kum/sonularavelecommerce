@@ -12,7 +12,7 @@
             <tr>
                 <th>#ID</th>
                 <th>Code</th>
-                <th>Discount (%)</th>
+                <th>Discount</th>
                 <th>Expiry Date</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -22,10 +22,20 @@
             @foreach($coupons as $coupon)
             <tr>
                 <td>{{ $coupon->id }}</td>
-                <td>{{ $coupon->code }}</td>
-                <td>{{ $coupon->discount }}</td>
-                <td>{{ $coupon->expiry_date->format('d M Y') }}</td>
-                <td>{{ $coupon->status ? 'Active' : 'Inactive' }}</td>
+                <td><strong>{{ $coupon->code }}</strong></td>
+                <td>
+                    @if($coupon->type === 'percent')
+                        {{ $coupon->value }}%
+                    @else
+                        ₹{{ number_format($coupon->value, 2) }}
+                    @endif
+                </td>
+                <td>{{ $coupon->expires_at ? $coupon->expires_at->format('d M Y') : 'No expiry' }}</td>
+                <td>
+                    <span class="badge {{ $coupon->is_active ? 'bg-success' : 'bg-secondary' }}">
+                        {{ $coupon->is_active ? 'Active' : 'Inactive' }}
+                    </span>
+                </td>
                 <td>
                     <a href="{{ route('admin.coupons.edit', $coupon->id) }}" class="btn btn-sm btn-warning">Edit</a>
                     <form action="{{ route('admin.coupons.destroy', $coupon->id) }}" method="POST" style="display:inline;">
@@ -37,5 +47,15 @@
             @endforeach
         </tbody>
     </table>
+
+    {{-- Pagination --}}
+    <div class="mt-4">
+        {{ $coupons->links('pagination::bootstrap-5') }}
+    </div>
+
+    {{-- Coupons Count Info --}}
+    <div class="mt-2 text-muted">
+        <small>Showing {{ $coupons->firstItem() ?? 0 }} to {{ $coupons->lastItem() ?? 0 }} of {{ $coupons->total() }} coupons</small>
+    </div>
 </div>
 @endsection

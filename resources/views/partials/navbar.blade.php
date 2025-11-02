@@ -80,7 +80,7 @@
         <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
             📊 Dashboard
         </a>
-        <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+        <a href="{{ route('admin.profile.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
             👤 Profile
         </a>
         <a href="{{ route('admin.wishlist.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
@@ -144,7 +144,7 @@
 
             @if(Auth::user()->is_admin)
                 <a href="{{ route('admin.dashboard') }}" class="mobile-link">⚙️ Admin Dashboard</a>
-                <a href="{{ route('admin.profile.edit') }}" class="mobile-link">👤 Admin Profile</a>
+                <a href="{{ route('admin.profile.index') }}" class="mobile-link">👤 Admin Profile</a>
             @else
                 <a href="{{ route('profile') }}" class="mobile-link">👤 Profile</a>
             @endif

@@ -7,14 +7,14 @@ use Illuminate\Http\Request;
 use App\Models\Coupon;
 use Illuminate\Support\Str;
 
-class CouponController extends Controller
+class AdminCouponController extends Controller
 {
     /**
      * Display all coupons.
      */
     public function index()
     {
-        $coupons = Coupon::latest()->paginate(10);
+        $coupons = Coupon::latest()->paginate(20);
         return view('admin.coupons.index', compact('coupons'));
     }
 
@@ -33,18 +33,18 @@ class CouponController extends Controller
     {
         $request->validate([
             'code' => 'nullable|string|unique:coupons,code',
-            'discount_type' => 'required|in:fixed,percent',
-            'discount_value' => 'required|numeric|min:0',
-            'expiry_date' => 'nullable|date',
-            'is_active' => 'boolean',
+            'type' => 'required|in:fixed,percent',
+            'value' => 'required|numeric|min:0',
+            'expires_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
         ]);
 
         Coupon::create([
             'code' => $request->code ?? strtoupper(Str::random(8)),
-            'discount_type' => $request->discount_type,
-            'discount_value' => $request->discount_value,
-            'expiry_date' => $request->expiry_date,
-            'is_active' => $request->is_active ?? true,
+            'type' => $request->type,
+            'value' => $request->value,
+            'expires_at' => $request->expires_at,
+            'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
         ]);
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon created successfully.');
@@ -67,17 +67,17 @@ class CouponController extends Controller
         $coupon = Coupon::findOrFail($id);
 
         $request->validate([
-            'discount_type' => 'required|in:fixed,percent',
-            'discount_value' => 'required|numeric|min:0',
-            'expiry_date' => 'nullable|date',
-            'is_active' => 'boolean',
+            'type' => 'required|in:fixed,percent',
+            'value' => 'required|numeric|min:0',
+            'expires_at' => 'nullable|date',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $coupon->update([
-            'discount_type' => $request->discount_type,
-            'discount_value' => $request->discount_value,
-            'expiry_date' => $request->expiry_date,
-            'is_active' => $request->is_active ?? true,
+            'type' => $request->type,
+            'value' => $request->value,
+            'expires_at' => $request->expires_at,
+            'is_active' => $request->has('is_active') ? (bool)$request->is_active : $coupon->is_active,
         ]);
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon updated successfully.');

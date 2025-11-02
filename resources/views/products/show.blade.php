@@ -132,7 +132,7 @@
         @forelse($product->reviews as $review)
             <div class="border rounded p-3 mb-3">
                 <div class="d-flex justify-content-between align-items-center">
-                    <strong>{{ $review->user->name }}</strong>
+                    <strong>{{ $review->user->name ?? 'Anonymous User' }}</strong>
                     <span class="text-warning">
                         @for($i = 1; $i <= 5; $i++)
                             @if($i <= $review->rating)

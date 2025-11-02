@@ -14,9 +14,10 @@
             <p><strong>User:</strong> {{ $order->user->name ?? 'Guest User' }} ({{ $order->user->email ?? 'N/A' }})</p>
             <p><strong>Status:</strong>
                 <span class="badge 
-                    @if($order->status == 'pending') bg-warning 
-                    @elseif($order->status == 'completed') bg-success 
-                    @elseif($order->status == 'cancelled') bg-danger 
+                    @if(strtolower($order->status) == 'pending') bg-warning 
+                    @elseif(in_array(strtolower($order->status), ['delivered', 'completed'])) bg-success 
+                    @elseif(strtolower($order->status) == 'cancelled') bg-danger 
+                    @elseif(strtolower($order->status) == 'refunded') bg-info 
                     @else bg-secondary 
                     @endif">
                     {{ ucfirst($order->status) }}
@@ -59,10 +60,10 @@
                     @foreach($order->orderItems as $index => $item)
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $item->product->name ?? 'Deleted Product' }}</td>
-                            <td>{{ number_format($item->price, 2) }}</td>
+                            <td>{{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}</td>
+                            <td>₹{{ number_format($item->price, 2) }}</td>
                             <td>{{ $item->quantity }}</td>
-                            <td>{{ number_format($item->price * $item->quantity, 2) }}</td>
+                            <td>₹{{ number_format($item->price * $item->quantity, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -70,8 +71,10 @@
 
             <div class="text-end mt-3">
                 <h5><strong>Subtotal:</strong> ₹{{ number_format($order->subtotal ?? 0, 2) }}</h5>
+                <h5><strong>Shipping:</strong> ₹{{ number_format($order->shipping ?? 0, 2) }}</h5>
+                <h5><strong>Tax:</strong> ₹{{ number_format($order->tax ?? 0, 2) }}</h5>
                 <h5><strong>Discount:</strong> ₹{{ number_format($order->discount ?? 0, 2) }}</h5>
-                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->total_amount, 2) }}</h4>
+                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->total, 2) }}</h4>
             </div>
         </div>
     </div>
@@ -86,10 +89,12 @@
                 <div class="row align-items-center">
                     <div class="col-md-4">
                         <select name="status" class="form-select" required>
-                            <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="processing" {{ $order->status == 'processing' ? 'selected' : '' }}>Processing</option>
-                            <option value="completed" {{ $order->status == 'completed' ? 'selected' : '' }}>Completed</option>
-                            <option value="cancelled" {{ $order->status == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="pending" {{ strtolower($order->status) == 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="processing" {{ strtolower($order->status) == 'processing' ? 'selected' : '' }}>Processing</option>
+                            <option value="shipped" {{ strtolower($order->status) == 'shipped' ? 'selected' : '' }}>Shipped</option>
+                            <option value="delivered" {{ strtolower($order->status) == 'delivered' ? 'selected' : '' }}>Delivered</option>
+                            <option value="cancelled" {{ strtolower($order->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                            <option value="refunded" {{ strtolower($order->status) == 'refunded' ? 'selected' : '' }}>Refunded</option>
                         </select>
                     </div>
                     <div class="col-md-4">

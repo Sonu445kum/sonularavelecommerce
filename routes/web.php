@@ -14,7 +14,13 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\StripeWebhookController;
-use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminWishlistController;
+use App\Http\Controllers\Admin\AdminProductController;
+use App\Http\Controllers\Admin\AdminCouponController;
+use App\Http\Controllers\Admin\AdminPaymentController;
 
 
 
@@ -95,7 +101,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Profiles
     Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
-    Route::post('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/update', [AuthController::class, 'updateProfile'])->name('profile.update');
     Route::post('/profile/avatar', [AuthController::class, 'updateAvatar'])->name('profile.avatar.update');
 
     // 🛍️ Cart
@@ -129,67 +135,144 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
+// Redirect /admin → /admin/dashboard
+// Route::get('/admin', function () {
+//     return redirect()->route('admin.dashboard');
+// });
 
-Route::get('/admin', function () {
-    return redirect()->route('admin.dashboard');
-});
-
-// ✅ All Admin Routes
-Route::middleware(['auth', 'admin'])
+//
+// ===============================
+// 🏠 ADMIN DASHBOARD ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
     ->prefix('admin')
     ->as('admin.')
     ->group(function () {
-
-        // 🏠 Dashboard
-        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
-
-        // 👤 Admin Profile
-        Route::controller(AdminController::class)->group(function () {
-            Route::get('/profile', 'profile')->name('profile');
-            Route::get('/profile/edit', 'editProfile')->name('profile.edit');
-            Route::put('/profile/update', 'updateProfile')->name('profile.update');
-        });
-
-        // 🛍️ Products
-        Route::controller(ProductController::class)->group(function () {
-            Route::get('/products', 'adminIndex')->name('products.index');
-            Route::get('/products/create', 'create')->name('products.create');
-            Route::post('/products', 'store')->name('products.store');
-            Route::get('/products/{id}/edit', 'edit')->name('products.edit');
-            Route::put('/products/{id}', 'update')->name('products.update');
-            Route::delete('/products/{id}', 'destroy')->name('products.destroy');
-        });
-
-        // 📦 Categories
-        Route::controller(CategoryController::class)->group(function () {
-            Route::get('/categories', 'adminIndex')->name('categories.index');
-            Route::get('/categories/create', 'create')->name('categories.create');
-            Route::post('/categories', 'store')->name('categories.store');
-            Route::get('/categories/{id}/edit', 'edit')->name('categories.edit');
-            Route::put('/categories/{id}', 'update')->name('categories.update');
-            Route::delete('/categories/{id}', 'destroy')->name('categories.destroy');
-        });
-
-        // 🧾 Orders
-        Route::controller(OrderController::class)->group(function () {
-            Route::get('/orders', 'adminIndex')->name('orders.index');
-            Route::get('/orders/{id}', 'adminShow')->name('orders.show');
-            Route::put('/orders/{id}/status', 'updateStatus')->name('orders.updateStatus');
-        });
-
-        // 🎟️ Coupons
-        Route::controller(CouponController::class)->group(function () {
-            Route::get('/coupons', 'index')->name('coupons.index');
-            Route::post('/coupons', 'store')->name('coupons.store');
-            Route::delete('/coupons/{id}', 'destroy')->name('coupons.destroy');
-        });
-
-        // 💖 Wishlist
-        Route::controller(WishlistController::class)->group(function () {
-            Route::get('/wishlist', 'index')->name('wishlist.index');
-            Route::delete('/wishlist/{id}', 'destroy')->name('wishlist.destroy');
-        });
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');;
     });
+
+
+//
+// ===============================
+// 👤 ADMIN PROFILE ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/profile')
+    ->as('admin.profile.')
+    ->group(function () {
+        Route::get('/', [AdminController::class, 'profile'])->name('index');
+        Route::get('/edit', [AdminController::class, 'editProfile'])->name('edit');
+        Route::put('/update', [AdminController::class, 'updateProfile'])->name('update');
+    });
+
+
+//
+// ===============================
+// 🛍️ ADMIN PRODUCT ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/products')
+    ->as('admin.products.')
+    ->group(function () {
+        Route::get('/', [AdminProductController::class, 'adminIndex'])->name('index');
+        Route::get('/create', [AdminProductController::class, 'create'])->name('create');
+        Route::post('/', [AdminProductController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [AdminProductController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [AdminProductController::class, 'update'])->name('update');
+        Route::delete('/{id}', [AdminProductController::class, 'destroy'])->name('destroy');
+    });
+
+
+//
+// ===============================
+// 📦 ADMIN CATEGORY ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/categories')
+    ->as('admin.categories.')
+    ->group(function () {
+        Route::get('/', [CategoryController::class, 'adminIndex'])->name('index');
+        Route::get('/create', [CategoryController::class, 'create'])->name('create');
+        Route::post('/', [CategoryController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [CategoryController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [CategoryController::class, 'update'])->name('update');
+        Route::delete('/{id}', [CategoryController::class, 'destroy'])->name('destroy');
+    });
+
+
+//
+// ===============================
+// 🧾 ADMIN ORDER ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/orders')
+    ->as('admin.orders.')
+    ->group(function () {
+        Route::get('/', [AdminOrderController::class, 'adminIndex'])->name('index');
+        Route::get('/{id}', [AdminOrderController::class, 'adminShow'])->name('show');
+        Route::put('/{id}/status', [AdminOrderController::class, 'updateStatus'])->name('updateStatus');
+    });
+
+
+//
+// ===============================
+// 🎟️ ADMIN COUPON ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/coupons')
+    ->as('admin.coupons.')
+    ->group(function () {
+        Route::get('/', [AdminCouponController::class, 'index'])->name('index');
+        Route::get('/create', [AdminCouponController::class, 'create'])->name('create');
+        Route::post('/', [AdminCouponController::class, 'store'])->name('store');
+        Route::get('/{id}/edit', [AdminCouponController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [AdminCouponController::class, 'update'])->name('update');
+        Route::delete('/{id}', [AdminCouponController::class, 'destroy'])->name('destroy');
+    });
+
+
+//
+// ===============================
+// 💖 ADMIN WISHLIST ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/wishlist')
+    ->as('admin.wishlist.')
+    ->group(function () {
+        Route::get('/', [AdminWishlistController::class, 'index'])->name('index');
+        Route::delete('/{id}', [AdminWishlistController::class, 'destroy'])->name('destroy');
+    });
+
+
+//
+// ===============================
+// 💳 ADMIN PAYMENT ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/payments')
+    ->as('admin.payments.')
+    ->group(function () {
+        Route::get('/', [AdminPaymentController::class, 'index'])->name('index');
+        Route::get('/{id}', [AdminPaymentController::class, 'show'])->name('show');
+        Route::put('/{id}/status', [AdminPaymentController::class, 'updateStatus'])->name('updateStatus');
+    });
+
+
+//
+// ===============================
+// 👥 ADMIN USER ROUTES
+// ===============================
+Route::middleware(['web', 'auth', 'admin'])
+    ->prefix('admin/users')
+    ->as('admin.users.')
+    ->group(function () {
+        Route::get('/', [AdminUserController::class, 'index'])->name('index');
+        Route::get('/create', [AdminUserController::class, 'create'])->name('create');
+        Route::post('/', [AdminUserController::class, 'store'])->name('store');
+        Route::get('/{id}', [AdminUserController::class, 'show'])->name('show');
+        Route::delete('/{id}', [AdminUserController::class, 'destroy'])->name('destroy');
+    });
+
 
 
 

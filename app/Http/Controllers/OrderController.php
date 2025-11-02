@@ -23,11 +23,11 @@ class OrderController extends Controller
 
         // 🔹 Admin can view all orders
         $orders = $user->is_admin
-            ? Order::with(['user', 'items.product'])
+            ? Order::with(['user', 'items.product.images'])
                 ->latest()
                 ->paginate(20)
             : $user->orders()
-                ->with(['items.product'])
+                ->with(['items.product.images'])
                 ->latest()
                 ->paginate(20);
 
@@ -48,7 +48,7 @@ class OrderController extends Controller
     {
         $order = Order::with([
             'user',
-            'items.product',
+            'items.product.images',
             'address',
             'payments' => function ($q) {
                 $q->latest();

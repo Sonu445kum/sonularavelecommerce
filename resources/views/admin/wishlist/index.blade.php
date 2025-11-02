@@ -1,4 +1,4 @@
-@extends('admin.layouts.app')
+@extends('layouts.admin')
 
 @section('title', 'User Wishlists')
 
@@ -44,11 +44,25 @@
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
-                                            <img src="{{ asset('storage/' . $wishlist->product->image) }}" alt="{{ $wishlist->product->name }}"
-                                                 class="rounded me-2" width="50" height="50" style="object-fit: cover;">
+                                            @php
+                                                $imageUrl = $wishlist->product->featured_image 
+                                                    ? (filter_var($wishlist->product->featured_image, FILTER_VALIDATE_URL) 
+                                                        ? $wishlist->product->featured_image 
+                                                        : asset('storage/' . $wishlist->product->featured_image))
+                                                    : ($wishlist->product->images->first() 
+                                                        ? asset('storage/' . $wishlist->product->images->first()->path)
+                                                        : asset('images/default-product.jpg'));
+                                            @endphp
+                                            <img src="{{ $imageUrl }}" 
+                                                 alt="{{ $wishlist->product->title ?? 'Product' }}"
+                                                 class="rounded me-2" 
+                                                 width="50" 
+                                                 height="50" 
+                                                 style="object-fit: cover;"
+                                                 onerror="this.src='{{ asset('images/default-product.jpg') }}'">
                                             <div>
-                                                <strong>{{ $wishlist->product->name }}</strong><br>
-                                                <small class="text-muted">{{ Str::limit($wishlist->product->description, 40) }}</small>
+                                                <strong>{{ $wishlist->product->title ?? $wishlist->product->name ?? 'N/A' }}</strong><br>
+                                                <small class="text-muted">{{ Str::limit($wishlist->product->description ?? '', 40) }}</small>
                                             </div>
                                         </div>
                                     </td>
@@ -72,7 +86,12 @@
 
                 {{-- 🔄 Pagination --}}
                 <div class="mt-3 d-flex justify-content-center">
-                    {{ $wishlists->links() }}
+                    {{ $wishlists->links('pagination::bootstrap-5') }}
+                </div>
+                
+                {{-- Wishlist Count Info --}}
+                <div class="mt-2 text-center text-muted">
+                    <small>Showing {{ $wishlists->firstItem() ?? 0 }} to {{ $wishlists->lastItem() ?? 0 }} of {{ $wishlists->total() }} wishlist items</small>
                 </div>
             @else
                 <div class="text-center py-5">

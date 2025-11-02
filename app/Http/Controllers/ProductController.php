@@ -78,8 +78,10 @@ class ProductController extends Controller
      */
     public function show($slug)
     {
-        // ✅ Get main product
-        $product = Product::with('category')->where('slug', $slug)->firstOrFail();
+        // ✅ Get main product with reviews and their users
+        $product = Product::with(['category', 'reviews.user'])
+            ->where('slug', $slug)
+            ->firstOrFail();
 
         // 🔁 Related Products (Same category)
         $relatedProducts = Product::where('category_id', $product->category_id)

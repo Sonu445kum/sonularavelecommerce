@@ -7,14 +7,14 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-class UserController extends Controller
+class AdminUserController extends Controller
 {
     /**
      * Display all users.
      */
     public function index()
     {
-        $users = User::latest()->paginate(10);
+        $users = User::latest()->paginate(20);
         return view('admin.users.index', compact('users'));
     }
 

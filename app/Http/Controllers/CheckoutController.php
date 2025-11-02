@@ -32,7 +32,7 @@ class CheckoutController extends Controller
 
         if ($user) {
             $cart = Cart::where('user_id', $user->id)
-                ->with('items.product')
+                ->with(['items.product.images'])
                 ->first();
 
             if (!$cart || $cart->items->isEmpty()) {
@@ -46,9 +46,15 @@ class CheckoutController extends Controller
                 return redirect()->route('cart.index')->withErrors('Your cart is empty.');
             }
 
+            // Get all product IDs from session cart
+            $productIds = collect($sessionCart)->pluck('product_id')->toArray();
+            
+            // Eager load products with images
+            $products = Product::with('images')->whereIn('id', $productIds)->get()->keyBy('id');
+            
             $items = [];
             foreach ($sessionCart as $item) {
-                $product = Product::find($item['product_id']);
+                $product = $products->get($item['product_id']);
                 if (!$product) continue;
 
                 $qty = $item['quantity'] ?? 1;
@@ -136,7 +142,7 @@ class CheckoutController extends Controller
             }
         } else {
             $cart = Cart::where('user_id', $user->id)
-                ->with('items.product')
+                ->with(['items.product.images'])
                 ->first();
 
             if (!$cart || $cart->items->isEmpty()) {
@@ -179,12 +185,19 @@ class CheckoutController extends Controller
 
                 foreach ($items as $item) {
                     $product = $item->product;
+                    // Get product image: featured_image first, then first image from images relationship
+                    $productImage = $product->featured_image ?? null;
+                    if (!$productImage && $product->images && $product->images->count() > 0) {
+                        $productImage = $product->images->first()->path;
+                    }
+                    $productImage = $productImage ?? 'images/default-product.jpg';
+                    
                     $order->items()->create([
                         'product_id'    => $product->id ?? $item->product_id,
                         'quantity'      => $item->quantity,
-                        'product_name'  => $product->name ?? 'Unnamed Product',
+                        'product_name'  => $product->title ?? $product->name ?? 'Unnamed Product',
                         'product_sku'   => $product->sku ?? 'N/A',
-                        'product_image' => $product->image ?? 'images/no-image.png',
+                        'product_image' => $productImage,
                         'unit_price'    => $product->price ?? 0,
                         'total_price'   => ($product->price ?? 0) * $item->quantity,
                     ]);
@@ -240,12 +253,19 @@ class CheckoutController extends Controller
 
             foreach ($items as $item) {
                 $product = $item->product;
+                // Get product image: featured_image first, then first image from images relationship
+                $productImage = $product->featured_image ?? null;
+                if (!$productImage && $product->images && $product->images->count() > 0) {
+                    $productImage = $product->images->first()->path;
+                }
+                $productImage = $productImage ?? 'images/default-product.jpg';
+                
                 $order->items()->create([
                     'product_id'    => $product->id ?? $item->product_id,
                     'quantity'      => $item->quantity,
-                    'product_name'  => $product->name ?? 'Unnamed Product',
+                    'product_name'  => $product->title ?? $product->name ?? 'Unnamed Product',
                     'product_sku'   => $product->sku ?? 'N/A',
-                    'product_image' => $product->image ?? 'images/no-image.png',
+                    'product_image' => $productImage,
                     'unit_price'    => $product->price ?? 0,
                     'total_price'   => ($product->price ?? 0) * $item->quantity,
                 ]);

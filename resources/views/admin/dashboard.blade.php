@@ -122,9 +122,9 @@
                             <tr>
                                 <td>{{ $order->id }}</td>
                                 <td>{{ $order->user->name ?? 'Guest' }}</td>
-                                <td>₹{{ number_format($order->total_amount, 2) }}</td>
+                                <td>₹{{ number_format($order->total, 2) }}</td>
                                 <td>
-                                    <span class="badge bg-{{ $order->status === 'completed' ? 'success' : 'warning' }}">
+                                    <span class="badge bg-{{ in_array(strtolower($order->status), ['completed', 'delivered']) ? 'success' : 'warning' }}">
                                         {{ ucfirst($order->status) }}
                                     </span>
                                 </td>
@@ -201,10 +201,10 @@
                         @forelse($recentPayments as $payment)
                             <tr>
                                 <td>{{ $payment->id }}</td>
-                                <td>{{ $payment->user->name ?? 'N/A' }}</td>
+                                <td>{{ $payment->order && $payment->order->user ? $payment->order->user->name : 'N/A' }}</td>
                                 <td>₹{{ number_format($payment->amount, 2) }}</td>
                                 <td>
-                                    <span class="badge bg-{{ $payment->status === 'completed' ? 'success' : 'warning' }}">
+                                    <span class="badge bg-{{ $payment->status === 'success' ? 'success' : ($payment->status === 'pending' ? 'warning' : 'danger') }}">
                                         {{ ucfirst($payment->status) }}
                                     </span>
                                 </td>
@@ -235,3 +235,4 @@
 }
 </style>
 @endsection
+ 

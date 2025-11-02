@@ -43,36 +43,49 @@ class Kernel extends HttpKernel
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
 
-            // Enables authentication errors to be flashed to session
+            // Allows errors to be shared with views
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
 
-            // CSRF Protection
+            // CSRF protection
             \App\Http\Middleware\VerifyCsrfToken::class,
 
-            // Route model bindings
+            // Substitutes route bindings
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
 
         'api' => [
-            // Throttle API calls (60 per minute by default)
+            // Throttle API requests (60 per minute by default)
             'throttle:api',
 
-            // Route model bindings
+            // Substitutes route bindings
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
 
     /**
      * ---------------------------------------------------------
-     * Middleware Aliases (Route Middleware)
+     * Route Middleware Aliases
      * ---------------------------------------------------------
+     * These middleware may be assigned to groups or used individually.
      */
     protected $middlewareAliases = [
-    'auth' => \App\Http\Middleware\Authenticate::class,
-    'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-    'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        // Laravel authentication
+        'auth' => \App\Http\Middleware\Authenticate::class,
 
-    // ✅ Custom Admin Middleware
-    'admin' => \App\Http\Middleware\AdminMiddleware::class,
+        // Redirects authenticated users away from guest-only routes
+        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+
+        // Verifies email if required
+        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+
+        // ✅ Custom Admin Middleware (important for your admin routes)
+        'admin' => \App\Http\Middleware\IsAdmin::class,
+    ];
+
+    protected $routeMiddleware = [
+    'admin' => \App\Http\Middleware\IsAdmin::class,
+    'auth' => \App\Http\Middleware\Authenticate::class,
+    
 ];
+
 }

@@ -6,12 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Wishlist;
 use Illuminate\Http\Request;
 
-class WishlistController extends Controller
+class AdminWishlistController extends Controller
 {
     // 💖 Show all wishlist items (admin view)
     public function index()
     {
-        $wishlists = Wishlist::with(['user', 'product'])->latest()->paginate(10);
+        $wishlists = Wishlist::with(['user', 'product.images'])->latest()->paginate(20);
         return view('admin.wishlist.index', compact('wishlists'));
     }
 

@@ -10,7 +10,7 @@ use App\Models\Category;
 use App\Models\Payment;
 use App\Models\Wishlist;
 
-class DashboardController extends Controller
+class AdminDashboardController extends Controller
 {
     /**
      * Display admin dashboard summary with all key metrics.

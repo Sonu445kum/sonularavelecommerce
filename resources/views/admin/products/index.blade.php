@@ -22,10 +22,10 @@
             @foreach($products as $product)
             <tr>
                 <td>{{ $product->id }}</td>
-                <td>{{ $product->name }}</td>
-                <td>₹{{ $product->price }}</td>
+                <td>{{ $product->title ?? $product->name ?? 'N/A' }}</td>
+                <td>₹{{ number_format($product->price, 2) }}</td>
                 <td>{{ $product->category->name ?? 'N/A' }}</td>
-                <td>{{ $product->stock }}</td>
+                <td>{{ $product->stock ?? 0 }}</td>
                 <td>
                     <a href="{{ route('admin.products.edit', $product->id) }}" class="btn btn-sm btn-warning">Edit</a>
                     <form action="{{ route('admin.products.destroy', $product->id) }}" method="POST" style="display:inline;">
@@ -37,5 +37,15 @@
             @endforeach
         </tbody>
     </table>
+
+    {{-- Pagination --}}
+    <div class="mt-4">
+        {{ $products->links('pagination::bootstrap-5') }}
+    </div>
+
+    {{-- Products Count Info --}}
+    <div class="mt-2 text-muted">
+        <small>Showing {{ $products->firstItem() ?? 0 }} to {{ $products->lastItem() ?? 0 }} of {{ $products->total() }} products</small>
+    </div>
 </div>
 @endsection

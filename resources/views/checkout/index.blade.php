@@ -101,19 +101,37 @@
                         <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
                             @foreach($cartItems as $item)
                                 @php
-                                    $imagePath = $item->product->image ?? null;
-                                    $imageUrl = $imagePath 
-                                        ? (Str::startsWith($imagePath, 'storage/') ? asset($imagePath) : asset('storage/' . $imagePath))
-                                        : asset('images/default-product.jpg');
+                                    // Try featured_image first, then first image from images relationship, then fallback
+                                    $imageUrl = null;
+                                    if ($item->product) {
+                                        // Check featured_image
+                                        if ($item->product->featured_image) {
+                                            $imagePath = $item->product->featured_image;
+                                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                                ? $imagePath
+                                                : asset('storage/' . ltrim($imagePath, '/'));
+                                        }
+                                        // Fallback to first image in images relationship
+                                        elseif ($item->product->images && $item->product->images->count() > 0) {
+                                            $imagePath = $item->product->images->first()->path;
+                                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                                ? $imagePath
+                                                : asset('storage/' . ltrim($imagePath, '/'));
+                                        }
+                                    }
+                                    // Final fallback
+                                    $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+                                    $productName = $item->product->title ?? $item->product->name ?? 'Unnamed Product';
                                 @endphp
 
                                 <div class="flex justify-between items-center border-b pb-3">
                                     <div class="flex items-center space-x-3">
-                                        <img src="{{ $imageUrl }}" alt="{{ $item->product->name ?? 'Product' }}"
-                                             class="w-12 h-12 rounded-md object-cover">
+                                        <img src="{{ $imageUrl }}" alt="{{ $productName }}"
+                                             class="w-12 h-12 rounded-md object-cover"
+                                             onerror="this.src='{{ asset('images/default-product.jpg') }}'">
 
                                         <div>
-                                            <h3 class="font-semibold text-gray-800 text-sm">{{ $item->product->name ?? 'Unnamed Product' }}</h3>
+                                            <h3 class="font-semibold text-gray-800 text-sm">{{ $productName }}</h3>
                                             <p class="text-xs text-gray-500">Qty: {{ $item->quantity }}</p>
                                         </div>
                                     </div>

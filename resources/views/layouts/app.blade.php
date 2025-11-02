@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -16,15 +16,14 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
-    <!-- Font Awesome CDN -->
-<link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-    integrity="sha512-0Zt1P4X8TRH2qW+4xvPGXyHWZC2kD3G3Yw+Gg7yja+dI0vL1rLzY6NfPyxv8aPLvVuQePejF1j4Z9xP+/o3rXg=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-/>
-
+    <!-- ✅ Font Awesome CDN -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+        integrity="sha512-0Zt1P4X8TRH2qW+4xvPGXyHWZC2kD3G3Yw+Gg7yja+dI0vL1rLzY6NfPyxv8aPLvVuQePejF1j4Z9xP+/o3rXg=="
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+    />
 
     <style>
         body {
@@ -60,6 +59,9 @@
     {{-- 🔹 Navbar --}}
     @include('partials.navbar')
 
+    {{-- ✅ SweetAlert popup (added here) --}}
+    @include('sweetalert::alert')
+
     {{-- 🔹 Main Page Content --}}
     <div class="container mx-auto px-4 mt-4">
         @include('partials.messages')
@@ -69,7 +71,7 @@
     {{-- 🔹 Footer --}}
     @include('partials.footer')
 
-    <!-- ✅ Bootstrap JS (for carousel auto-slide, modal, dropdown, etc.) -->
+    <!-- ✅ Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- 🧠 Carousel Auto-Slide Settings -->
@@ -78,10 +80,10 @@
             const carouselElement = document.querySelector('.carousel');
             if (carouselElement) {
                 const carousel = new bootstrap.Carousel(carouselElement, {
-                    interval: 3000, // ⏱️ Change image every 3 seconds
-                    ride: 'carousel', // ✅ auto-slide enabled
-                    pause: false, // no pause on hover
-                    wrap: true // loop endlessly
+                    interval: 3000,
+                    ride: 'carousel',
+                    pause: false,
+                    wrap: true
                 });
             }
         });

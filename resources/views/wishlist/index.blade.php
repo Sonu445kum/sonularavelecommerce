@@ -32,9 +32,30 @@
 
                         {{-- 🖼 Product Image --}}
                         <div class="overflow-hidden position-relative">
-                            <img src="{{ asset('storage/'.$product->image) }}"
-                                 alt="{{ $product->name }}"
-                                 class="card-img-top product-img">
+                            @php
+                                // Try featured_image first, then first image from images relationship, then fallback
+                                $imageUrl = null;
+                                if ($product->featured_image) {
+                                    $imagePath = $product->featured_image;
+                                    $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                        ? $imagePath
+                                        : asset('storage/' . ltrim($imagePath, '/'));
+                                }
+                                // Fallback to first image in images relationship
+                                elseif ($product->images && $product->images->count() > 0) {
+                                    $imagePath = $product->images->first()->path;
+                                    $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
+                                        ? $imagePath
+                                        : asset('storage/' . ltrim($imagePath, '/'));
+                                }
+                                // Final fallback
+                                $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+                                $productName = $product->title ?? $product->name ?? 'Product';
+                            @endphp
+                            <img src="{{ $imageUrl }}"
+                                 alt="{{ $productName }}"
+                                 class="card-img-top product-img"
+                                 onerror="this.src='{{ asset('images/default-product.jpg') }}'">
                             @if($product->discount > 0)
                                 <span class="badge bg-danger position-absolute top-0 start-0 m-2 px-3 py-2">
                                     -{{ $product->discount }}%
@@ -44,7 +65,7 @@
 
                         {{-- 📄 Product Info --}}
                         <div class="card-body text-center">
-                            <h5 class="card-title fw-semibold text-dark">{{ $product->name }}</h5>
+                            <h5 class="card-title fw-semibold text-dark">{{ $productName }}</h5>
                             <p class="text-muted mb-2 small">{{ Str::limit($product->description, 60) }}</p>
 
                             {{-- 💰 Price --}}
@@ -66,14 +87,16 @@
 
                             {{-- 🛒 Buttons --}}
                             <div class="d-flex justify-content-center gap-2">
-                                <form action="{{ route('cart.add', $product->id) }}" method="POST">
+                                <form action="{{ route('cart.add') }}" method="POST">
                                     @csrf
+                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                    <input type="hidden" name="quantity" value="1">
                                     <button type="submit" class="btn btn-outline-success btn-sm btn-custom">
                                         <i class="fas fa-shopping-cart me-1"></i> Add to Cart
                                     </button>
                                 </form>
 
-                                <a href="{{ route('products.show', $product->id) }}"
+                                <a href="{{ route('products.show', $product->slug) }}"
                                    class="btn btn-primary btn-sm btn-custom">
                                     <i class="fas fa-eye me-1"></i> View
                                 </a>

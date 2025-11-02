@@ -35,5 +35,15 @@
             @endforeach
         </tbody>
     </table>
+
+    {{-- Pagination --}}
+    <div class="mt-4">
+        {{ $categories->links('pagination::bootstrap-5') }}
+    </div>
+
+    {{-- Categories Count Info --}}
+    <div class="mt-2 text-muted">
+        <small>Showing {{ $categories->firstItem() ?? 0 }} to {{ $categories->lastItem() ?? 0 }} of {{ $categories->total() }} categories</small>
+    </div>
 </div>
 @endsection
