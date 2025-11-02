@@ -97,19 +97,18 @@ class ProductController extends Controller
      * 🔎 Navbar Search Functionality
      * ===========================================================
      */
-    public function search(Request $req)
-    {
-        $query = $req->input('query');
+    public function search(Request $request)
+{
+    $query = $request->input('query');
 
-        $products = Product::where(function ($q) use ($query) {
-                $q->where('title', 'like', "%{$query}%")
-                  ->orWhere('description', 'like', "%{$query}%");
-            })
-            ->where('is_active', true)
-            ->paginate(12);
+    $products = Product::where('title', 'LIKE', "%{$query}%")
+        ->orWhere('description', 'LIKE', "%{$query}%")
+        ->where('is_active', true)
+        ->paginate(12);
 
-        $categories = Category::where('is_active', true)->orderBy('name')->get();
+    $categories = Category::where('is_active', true)->orderBy('name')->get();
 
-        return view('products.search', compact('products', 'query', 'categories'));
-    }
+    return view('products.search', compact('products', 'query', 'categories'));
+}
+
 }

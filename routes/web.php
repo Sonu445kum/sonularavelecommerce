@@ -10,8 +10,11 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CouponController;
-use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\WishlistController;
+use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\StripeWebhookController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -38,6 +41,7 @@ Route::get('/contact', [PageController::class, 'contact'])->name('contact');
 // 🛍️ Products
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');
 Route::get('/products/search', [ProductController::class, 'search'])->name('products.search');
+
 Route::get('/products/{slug}', [ProductController::class, 'show'])->name('products.show');
 
 // 🗂️ Category Browsing
@@ -110,6 +114,11 @@ Route::middleware(['auth'])->group(function () {
 
     // ⭐ Product Reviews
     Route::post('/product/{id}/review', [ReviewController::class, 'store'])->name('reviews.store');
+    Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
+    // wishList
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/add/{product}', [WishlistController::class, 'add'])->name('wishlist.add');
+    Route::delete('/wishlist/remove/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
 });
 
 
@@ -119,6 +128,8 @@ Route::middleware(['auth'])->group(function () {
 // 🧾 ADMIN PANEL ROUTES
 // =======================
 //
+Route::get('/admin', [AdminController::class, 'index']);
+
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
@@ -130,6 +141,13 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('products.edit');
     Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
     Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
+
+
+    // Profiles
+    
+    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
+    Route::put('/profile/update', [AdminController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/profile/edit', [AdminController::class, 'editProfile'])->name('profile.edit');
 
     // 🗂️ Manage Categories
     Route::get('/categories', [CategoryController::class, 'adminIndex'])->name('categories.index');
@@ -148,6 +166,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/coupons', [CouponController::class, 'index'])->name('coupons.index');
     Route::post('/coupons', [CouponController::class, 'store'])->name('coupons.store');
     Route::delete('/coupons/{id}', [CouponController::class, 'destroy'])->name('coupons.destroy');
+
+    // WishList
+    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
+    Route::post('/wishlist/add', [WishlistController::class, 'add'])->name('wishlist.add');
+    Route::post('/wishlist/remove', [WishlistController::class, 'remove'])->name('wishlist.remove');
+
 });
 
 

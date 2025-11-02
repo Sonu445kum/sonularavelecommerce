@@ -49,7 +49,7 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Order::class);
     }
-
+    
     // 🔹 Each OrderItem belongs to one Product
     public function product()
     {

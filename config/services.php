@@ -8,9 +8,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
+    | as Mailgun, Postmark, AWS, Stripe, Razorpay, and more. This provides
+    | a centralized location for managing external service credentials.
     |
     */
 
@@ -34,5 +33,36 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stripe Payment Gateway
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for Stripe. These credentials are pulled from your .env
+    | file and used throughout your application for payments.
+    |
+    */
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook' => [
+            'secret' => env('STRIPE_WEBHOOK_SECRET'),
+            'tolerance' => env('STRIPE_WEBHOOK_TOLERANCE', 300),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Razorpay Payment Gateway (Optional)
+    |--------------------------------------------------------------------------
+    |
+    | If you’re integrating Razorpay as well, add your credentials here.
+    |
+    */
+    // 'razorpay' => [
+    //     'key' => env('RAZORPAY_KEY'),
+    //     'secret' => env('RAZORPAY_SECRET'),
+    // ],
 
 ];

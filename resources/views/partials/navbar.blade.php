@@ -1,21 +1,21 @@
-<nav class="bg-white shadow-md sticky top-0 z-50">
+<nav class="bg-gray-100 shadow-md sticky top-0 z-50 transition duration-300">
     <div class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
 
         {{-- 🔹 Logo --}}
         <a href="{{ url('/') }}" class="flex items-center space-x-2">
             <img src="https://cdn-icons-png.flaticon.com/512/2331/2331970.png" alt="Logo" class="w-8 h-8">
-            <span class="text-lg font-semibold text-gray-800">MyShop</span>
+            <span class="text-xl font-bold text-gray-900 tracking-tight">MyShop</span>
         </a>
 
-        {{-- 🔹 Navigation Links --}}
+        {{-- 🔹 Navigation Links (Desktop) --}}
         <div class="hidden md:flex items-center space-x-6">
-            <a href="{{ url('/') }}" class="text-gray-700 hover:text-blue-600 font-medium">Home</a>
-            <a href="{{ route('about') }}" class="text-gray-700 hover:text-blue-600 font-medium">About</a>
-            <a href="{{ route('contact') }}" class="text-gray-700 hover:text-blue-600 font-medium">Contact</a>
-            <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-blue-600 font-medium">Products</a>
+            <a href="{{ url('/') }}" class="nav-link {{ request()->is('/') ? 'text-blue-600 font-semibold' : '' }}">Home</a>
+            <a href="{{ route('about') }}" class="nav-link {{ request()->is('about') ? 'text-blue-600 font-semibold' : '' }}">About</a>
+            <a href="{{ route('contact') }}" class="nav-link {{ request()->is('contact') ? 'text-blue-600 font-semibold' : '' }}">Contact</a>
+            <a href="{{ route('products.index') }}" class="nav-link {{ request()->is('products*') ? 'text-blue-600 font-semibold' : '' }}">Products</a>
         </div>
 
-        {{-- 🔹 Search Bar (Desktop) --}}
+        {{-- 🔍 Search Bar --}}
         <form action="{{ route('products.search') }}" method="GET" class="hidden md:flex w-1/3">
             <input type="text" name="query" placeholder="Search products..."
                 class="w-full border border-gray-300 rounded-l-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -23,43 +23,96 @@
         </form>
 
         {{-- 🔹 Right Section --}}
-        <div class="flex items-center space-x-4">
+        <div class="flex items-center space-x-5">
             @auth
-                {{-- 🧾 My Orders --}}
-                <a href="{{ route('orders.index') }}" class="text-gray-700 hover:text-blue-600 text-sm font-medium">My Orders</a>
-
-                {{-- 🛒 Cart with Dynamic Count --}}
                 @php
-                    $cartCount = \App\Models\CartItem::whereHas('cart', function ($query) {
-                        $query->where('user_id', auth()->id());
-                    })->count();
+                    $wishlistCount = \App\Models\Wishlist::where('user_id', auth()->id())->count();
+                    $cartCount = \App\Models\CartItem::whereHas('cart', fn($q) => $q->where('user_id', auth()->id()))->count();
                 @endphp
 
-                <a href="{{ route('cart.index') }}" class="relative text-gray-700 hover:text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                        stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M2.25 3h1.386c.51 0 .955.343 1.09.835l.383 1.435m0 0L6.75 14.25h10.5l1.636-8.98a1.125 1.125 0 00-1.11-1.32H4.119m.99 3.57h13.5" />
-                    </svg>
+                {{-- ❤️ Wishlist --}}
+                @if(!Auth::user()->is_admin && Route::has('wishlist.index'))
+                    <a href="{{ route('wishlist.index') }}" class="relative text-gray-800 hover:text-pink-600">
+                        <i class="fas fa-heart text-xl"></i>
+                        @if($wishlistCount > 0)
+                            <span class="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full px-1">
+                                {{ $wishlistCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
 
-                    @if($cartCount > 0)
-                        <span class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
-                            {{ $cartCount }}
-                        </span>
-                    @endif
-                </a>
+                {{-- 📦 Orders --}}
+                @if(!Auth::user()->is_admin)
+                    <a href="{{ route('orders.index') }}" class="text-gray-800 hover:text-blue-600 text-sm font-medium">
+                        <i class="fas fa-box"></i> My Orders
+                    </a>
+                @endif
 
-                {{-- 🚪 Logout --}}
-                <form action="{{ route('logout') }}" method="POST" class="inline">
-                    @csrf
-                    <button class="bg-red-500 text-white px-3 py-1 rounded-md text-sm hover:bg-red-600">
-                        Logout
+                {{-- 🛒 Cart --}}
+                @if(!Auth::user()->is_admin)
+                    <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.25 3h1.386c.51 0 .955.343 1.09.835l.383 1.435m0 0L6.75 14.25h10.5l1.636-8.98a1.125 1.125 0 00-1.11-1.32H4.119m.99 3.57h13.5" />
+                        </svg>
+                        @if($cartCount > 0)
+                            <span class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
+                                {{ $cartCount }}
+                            </span>
+                        @endif
+                    </a>
+                @endif
+
+                {{-- 👤 Dropdown --}}
+                <div class="relative group">
+                    <button class="flex items-center space-x-1 text-gray-800 hover:text-blue-600 font-semibold">
+                        <span>{{ Auth::user()->is_admin ? '⚙️ Admin' : Auth::user()->name }}</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 9l-7 7-7-7" />
+                        </svg>
                     </button>
-                </form>
+
+                    {{-- Dropdown Menu --}}
+                    <div
+                        class="absolute right-0 mt-2 w-48 bg-gray-50 border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50">
+
+                        {{-- 🔧 Admin Menu --}}
+                        @if(Auth::user()->is_admin)
+                            <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+                                📊 Dashboard
+                            </a>
+                            <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+                                👤 Profile
+                            </a>
+                        @else
+                            {{-- 👤 User Menu --}}
+                            <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+                                👤 Profile
+                            </a>
+                        @endif
+
+                        <div class="border-t my-1"></div>
+                        <form action="{{ route('logout') }}" method="POST">
+                            @csrf
+                            <button type="submit"
+                                class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">🚪 Logout</button>
+                        </form>
+                    </div>
+                </div>
             @else
-                {{-- 🔹 Auth Buttons --}}
-                <a href="{{ route('login') }}" class="border border-blue-500 text-blue-500 px-3 py-1 rounded-md text-sm hover:bg-blue-500 hover:text-white transition">Login</a>
-                <a href="{{ route('register') }}" class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700">Sign Up</a>
+                {{-- 🔹 Guest Buttons --}}
+                <a href="{{ route('login') }}"
+                    class="border border-blue-500 text-blue-500 px-3 py-1 rounded-md text-sm hover:bg-blue-500 hover:text-white transition">
+                    Login
+                </a>
+                <a href="{{ route('register') }}"
+                    class="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 transition">
+                    Sign Up
+                </a>
             @endauth
         </div>
 
@@ -74,37 +127,58 @@
     </div>
 
     {{-- 🔹 Mobile Menu --}}
-    <div id="mobile-menu" class="hidden md:hidden bg-gray-100 border-t border-gray-200 px-4 py-3 space-y-2">
-        <a href="{{ url('/') }}" class="block py-2 text-gray-700 hover:text-blue-600">Home</a>
-        <a href="{{ route('about') }}" class="block py-2 text-gray-700 hover:text-blue-600">About</a>
-        <a href="{{ route('contact') }}" class="block py-2 text-gray-700 hover:text-blue-600">Contact</a>
-        <a href="{{ route('products.index') }}" class="block py-2 text-gray-700 hover:text-blue-600">Products</a>
+    <div id="mobile-menu"
+        class="hidden md:hidden bg-gray-100 border-t border-gray-200 px-4 py-3 space-y-2 shadow-inner">
+        <a href="{{ url('/') }}" class="mobile-link">Home</a>
+        <a href="{{ route('about') }}" class="mobile-link">About</a>
+        <a href="{{ route('contact') }}" class="mobile-link">Contact</a>
+        <a href="{{ route('products.index') }}" class="mobile-link">Products</a>
 
         @auth
-            {{-- 🧾 My Orders --}}
-            <a href="{{ route('orders.index') }}" class="block py-2 text-gray-700 hover:text-blue-600">My Orders</a>
+            @if(Auth::user()->is_admin)
+                <a href="{{ route('admin.dashboard') }}" class="mobile-link">📊 Dashboard</a>
+                <a href="{{ route('admin.profile.edit') }}" class="mobile-link">👤 Profile</a>
+            @else
+                <a href="{{ route('wishlist.index') }}" class="mobile-link text-pink-600 font-semibold">❤️ Wishlist</a>
+                <a href="{{ route('orders.index') }}" class="mobile-link">📦 My Orders</a>
+                <a href="{{ route('cart.index') }}" class="mobile-link flex items-center">
+                    🛒 Cart
+                    @if($cartCount > 0)
+                        <span class="ml-2 bg-red-600 text-white text-xs rounded-full px-2">{{ $cartCount }}</span>
+                    @endif
+                </a>
+                <a href="{{ route('profile') }}" class="mobile-link">👤 Profile</a>
+            @endif
 
-            {{-- 🛒 Cart (Mobile) --}}
-            <a href="{{ route('cart.index') }}" class="flex items-center py-2 text-gray-700 hover:text-blue-600">
-                🛒 Cart
-                @if($cartCount > 0)
-                    <span class="ml-2 bg-red-600 text-white text-xs rounded-full px-2">{{ $cartCount }}</span>
-                @endif
-            </a>
-
-            {{-- 🚪 Logout --}}
             <form action="{{ route('logout') }}" method="POST" class="mt-2">
                 @csrf
-                <button class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600">
+                <button
+                    class="w-full bg-red-500 text-white py-2 rounded-md hover:bg-red-600 transition font-medium">
                     Logout
                 </button>
             </form>
         @else
-            {{-- 🔹 Auth Buttons (Mobile) --}}
-            <a href="{{ route('login') }}" class="block w-full text-center border border-blue-500 text-blue-500 py-2 rounded-md mb-2 hover:bg-blue-500 hover:text-white">Login</a>
-            <a href="{{ route('register') }}" class="block w-full text-center bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">Sign Up</a>
+            <a href="{{ route('login') }}"
+                class="block w-full text-center border border-blue-500 text-blue-500 py-2 rounded-md mb-2 hover:bg-blue-500 hover:text-white">
+                Login
+            </a>
+            <a href="{{ route('register') }}"
+                class="block w-full text-center bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700">
+                Sign Up
+            </a>
         @endauth
     </div>
+
+    {{-- ✅ Styles --}}
+    <style>
+        .nav-link {
+            @apply text-gray-800 hover:text-blue-600 font-medium transition;
+        }
+
+        .mobile-link {
+            @apply block py-2 text-gray-800 hover:text-blue-600 transition font-medium;
+        }
+    </style>
 
     <script>
         document.getElementById('menu-btn').addEventListener('click', () => {

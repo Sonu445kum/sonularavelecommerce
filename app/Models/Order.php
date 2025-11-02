@@ -98,10 +98,16 @@ class Order extends Model
     }
 
     // 🔹 Each order has many order items
-    public function items()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
+    public function Items()
+{
+    return $this->hasMany(OrderItem::class);
+}
+
+public function orderItems()
+{
+    return $this->hasMany(\App\Models\OrderItem::class, 'order_id');
+}
+
 
     // 🔹 Each order can have multiple payments
     public function payments()

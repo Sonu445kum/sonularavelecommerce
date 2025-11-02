@@ -1,6 +1,6 @@
 {{-- ==========================================================
     Product Details Page – show.blade.php
-    Displays a single product with related products
+    Displays a single product with related products & reviews
 ========================================================== --}}
 @extends('layouts.app')
 
@@ -48,12 +48,12 @@
             <h2 class="fw-bold mb-2">{{ $product->title }}</h2>
             <p class="text-muted mb-3">{{ $product->category->name ?? 'Uncategorized' }}</p>
 
-            {{-- ⭐ Rating (Static for now) --}}
+            {{-- ⭐ Rating --}}
             <div class="text-warning mb-2">
                 @for ($i = 0; $i < 5; $i++)
                     <i class="bi {{ $i < 4 ? 'bi-star-fill' : 'bi-star' }}"></i>
                 @endfor
-                <span class="text-secondary small">(128 Reviews)</span>
+                <span class="text-secondary small">({{ $product->reviews->count() }} Reviews)</span>
             </div>
 
             {{-- 💰 Price --}}
@@ -77,7 +77,7 @@
                 <p class="text-danger fw-semibold">Out of Stock</p>
             @endif
 
-            {{-- 🛒 Add to Cart (✅ FIXED) --}}
+            {{-- 🛒 Add to Cart --}}
             <form action="{{ route('cart.add') }}" method="POST" class="mt-4">
                 @csrf
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
@@ -122,6 +122,96 @@
             @endif
         </div>
     </div>
+
+    {{-- ⭐ Customer Reviews Section --}}
+    <hr class="my-5">
+    <div class="mt-4">
+        <h4 class="fw-bold mb-3">Customer Reviews</h4>
+
+        {{-- ✅ Show existing reviews --}}
+        @forelse($product->reviews as $review)
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>{{ $review->user->name }}</strong>
+                    <span class="text-warning">
+                        @for($i = 1; $i <= 5; $i++)
+                            @if($i <= $review->rating)
+                                ★
+                            @else
+                                ☆
+                            @endif
+                        @endfor
+                    </span>
+                </div>
+
+                <p class="mt-2 mb-0">{{ $review->comment }}</p>
+
+                {{-- 📷 Optional Review Images --}}
+                @php
+                    $reviewImages = is_string($review->images)
+                        ? json_decode($review->images, true)
+                        : $review->images;
+                @endphp
+
+                @if(!empty($reviewImages) && is_array($reviewImages))
+                    <div class="mt-2">
+                        @foreach($reviewImages as $img)
+                            <img src="{{ asset('storage/'.$img) }}" 
+                                 alt="Review Image" width="80" class="rounded me-2">
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        @empty
+            <p>No reviews yet. Be the first to review this product!</p>
+        @endforelse
+    </div>
+
+    {{-- 📝 Review Form --}}
+    @php
+        $userHasPurchased = false;
+        if (auth()->check()) {
+            $userHasPurchased = \App\Models\Order::where('user_id', auth()->id())
+                ->where('payment_status', 'paid')
+                ->whereHas('orderItems', function ($q) use ($product) {
+                    $q->where('product_id', $product->id);
+                })
+                ->exists();
+        }
+    @endphp
+
+    @if(auth()->check() && $userHasPurchased)
+        <div class="mt-5">
+            <h4>Write a Review</h4>
+            <form action="{{ route('reviews.store', $product->id) }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <div class="mb-3">
+                    <label for="rating" class="form-label">Rating (1 to 5)</label>
+                    <input type="number" name="rating" min="1" max="5" class="form-control" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="comment" class="form-label">Comment</label>
+                    <textarea name="comment" class="form-control" rows="3" placeholder="Share your experience..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="images" class="form-label">Upload Images (optional)</label>
+                    <input type="file" name="images[]" multiple class="form-control">
+                </div>
+
+                <button type="submit" class="btn btn-primary">Submit Review</button>
+            </form>
+        </div>
+    @elseif(auth()->check())
+        <p class="text-muted mt-4">
+            ⚠️ You can only review this product after purchasing it.
+        </p>
+    @else
+        <p class="text-muted mt-4">
+            🔐 Please <a href="{{ route('login') }}">login</a> to write a review.
+        </p>
+    @endif
 
     {{-- 🛍️ Related Products --}}
     @if (isset($related) && $related->count() > 0)

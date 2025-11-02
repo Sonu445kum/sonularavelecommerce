@@ -24,7 +24,9 @@ return new class extends Migration
             $table->string('email')->unique(); // Unique email for login
             $table->timestamp('email_verified_at')->nullable(); // Email verification timestamp
             $table->string('password'); // Hashed password
-            $table->string('phone', 20)->nullable()->index(); // Optional phone number
+
+            // ✅ Updated line — phone must be unique now
+            $table->string('phone', 20)->nullable()->unique(); // Optional & unique phone number
 
             // Role-based access: customer / admin / vendor
             $table->enum('role', ['customer', 'admin', 'vendor'])

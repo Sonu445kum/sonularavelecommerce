@@ -6,6 +6,19 @@
 <div class="container mx-auto px-4 py-10">
     <h1 class="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
 
+    {{-- ✅ Flash Messages --}}
+    @if(session('error'))
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-4">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if(session('success'))
+        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md mb-4">
+            {{ session('success') }}
+        </div>
+    @endif
+
     {{-- ✅ Empty Cart Handling --}}
     @if(empty($cartItems) || $cartItems->isEmpty())
         <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md">
@@ -64,12 +77,12 @@
                         <h2 class="text-xl font-semibold text-gray-800 mb-4">Payment Method</h2>
 
                         <div class="space-y-4">
-                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50">
+                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition">
                                 <input type="radio" name="payment_method" value="cod" required {{ old('payment_method') == 'cod' ? 'checked' : '' }}>
                                 <span class="text-gray-800 font-medium">Cash on Delivery (COD)</span>
                             </label>
 
-                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50">
+                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition">
                                 <input type="radio" name="payment_method" value="card" {{ old('payment_method') == 'card' ? 'checked' : '' }}>
                                 <span class="text-gray-800 font-medium">Pay Online (Stripe)</span>
                             </label>
@@ -89,13 +102,9 @@
                             @foreach($cartItems as $item)
                                 @php
                                     $imagePath = $item->product->image ?? null;
-                                    if ($imagePath) {
-                                        $imageUrl = Str::startsWith($imagePath, 'storage/')
-                                            ? asset($imagePath)
-                                            : asset('storage/' . $imagePath);
-                                    } else {
-                                        $imageUrl = asset('images/default-product.jpg');
-                                    }
+                                    $imageUrl = $imagePath 
+                                        ? (Str::startsWith($imagePath, 'storage/') ? asset($imagePath) : asset('storage/' . $imagePath))
+                                        : asset('images/default-product.jpg');
                                 @endphp
 
                                 <div class="flex justify-between items-center border-b pb-3">
@@ -131,7 +140,7 @@
                             $total = max($subtotal - $discount + $shipping, 0);
                         @endphp
 
-                        {{-- Coupon Input --}}
+                        {{-- 🎟️ Coupon Input --}}
                         <form action="{{ route('checkout.applyCoupon') }}" method="POST" class="mt-4">
                             @csrf
                             <div class="flex items-center space-x-2">
@@ -146,12 +155,12 @@
 
                             @if(session('coupon'))
                                 <p class="text-green-600 text-sm mt-1">
-                                    Applied Coupon: <strong>{{ session('coupon.code') }}</strong>
+                                    ✅ Coupon Applied: <strong>{{ session('coupon.code') }}</strong>
                                 </p>
                             @endif
                         </form>
 
-                        {{-- Total Summary --}}
+                        {{-- 📦 Total Summary --}}
                         <div class="mt-6 border-t pt-4 space-y-2 text-sm">
                             <div class="flex justify-between text-gray-700">
                                 <span>Subtotal:</span>

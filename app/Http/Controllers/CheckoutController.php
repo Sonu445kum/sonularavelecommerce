@@ -16,7 +16,7 @@ use Stripe\PaymentIntent;
 class CheckoutController extends Controller
 {
     /**
-     * Display checkout page
+     * 🏠 Show checkout page
      */
     public function index()
     {
@@ -24,7 +24,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Show checkout details
+     * 📦 Display checkout details
      */
     public function show()
     {
@@ -70,7 +70,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Apply coupon
+     * 🎟️ Apply coupon
      */
     public function applyCoupon(Request $req)
     {
@@ -92,7 +92,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * Process checkout order
+     * 🧾 Process checkout order
      */
     public function process(Request $req)
     {
@@ -147,7 +147,7 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($it) => $it->price * $it->quantity);
         }
 
-        // 🎟️ Apply coupon
+        // 💰 Coupon & total calculation
         $coupon = session('coupon');
         $discount = 0;
 
@@ -161,7 +161,7 @@ class CheckoutController extends Controller
         $totalAmount = max(0, $subtotal - $discount + $shipping);
 
         /**
-         * 💳 Online Payment (Stripe or Razorpay)
+         * 💳 Online Payments (Stripe / Razorpay)
          */
         if (in_array($req->payment_method, ['card', 'razorpay'])) {
             DB::beginTransaction();
@@ -190,7 +190,7 @@ class CheckoutController extends Controller
                     ]);
                 }
 
-                // ✅ Initialize Stripe
+                // ✅ Stripe Configuration
                 $stripeSecret = config('services.stripe.secret') ?? env('STRIPE_SECRET');
                 if (empty($stripeSecret)) {
                     DB::rollBack();
@@ -211,10 +211,9 @@ class CheckoutController extends Controller
                 $order->update(['payment_intent_id' => $paymentIntent->id]);
                 DB::commit();
 
-                // ✅ Redirect user to success page
                 return redirect()->route('checkout.success', [
                     'order_id' => $order->id,
-                    'payment_intent_id' => $paymentIntent->id
+                    'payment_intent_id' => $paymentIntent->id,
                 ]);
             } catch (\Throwable $e) {
                 DB::rollBack();
@@ -223,7 +222,7 @@ class CheckoutController extends Controller
         }
 
         /**
-         * 💵 Cash on Delivery (COD)
+         * 💵 Cash on Delivery
          */
         DB::beginTransaction();
         try {
@@ -236,6 +235,7 @@ class CheckoutController extends Controller
                 'address' => $req->address,
                 'payment_method' => 'cod',
                 'status' => 'Processing',
+                'payment_status' => 'pending',
             ]);
 
             foreach ($items as $item) {
@@ -251,7 +251,6 @@ class CheckoutController extends Controller
                 ]);
             }
 
-            // 🧹 Clear cart
             if (!$isGuest) {
                 $cart->items()->delete();
                 $cart->delete();
@@ -271,37 +270,35 @@ class CheckoutController extends Controller
     }
 
     /**
-     * ✅ Handle Stripe success page
+     * ✅ Payment success page
      */
-   public function success(Request $request)
-{
-    $order = Order::find($request->order_id);
+    public function success(Request $request)
+    {
+        $order = Order::find($request->order_id);
 
-    if (!$order) {
-        return redirect()->route('home')->withErrors('Order not found.');
-    }
-
-    // ✅ Update payment status
-    $order->update([
-        'status' => 'processing', 
-        'payment_status' => 'paid',
-        'paid_at' => now(),
-    ]);
-
-    // ✅ Clear cart after payment success
-    if ($order->user_id) {
-        $cart = Cart::where('user_id', $order->user_id)->first();
-        if ($cart) {
-            $cart->items()->delete();
-            $cart->delete();
+        if (!$order) {
+            return redirect()->route('home')->withErrors('Order not found.');
         }
-    }
 
-    return view('checkout.success', compact('order'));
-}
+        $order->update([
+            'status' => 'Processing',
+            'payment_status' => 'Paid',
+            'paid_at' => now(),
+        ]);
+
+        if ($order->user_id) {
+            $cart = Cart::where('user_id', $order->user_id)->first();
+            if ($cart) {
+                $cart->items()->delete();
+                $cart->delete();
+            }
+        }
+
+        return view('checkout.success', compact('order'));
+    }
 
     /**
-     * ❌ Handle Stripe cancel page
+     * ❌ Payment cancel page
      */
     public function cancel()
     {

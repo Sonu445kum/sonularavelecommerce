@@ -97,8 +97,37 @@
             @if($products->count() > 0)
                 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
                     @foreach ($products as $product)
-                        <div
-                            class="group bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 relative">
+                        <div class="group bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 relative">
+
+                            {{-- ❤️ Wishlist Heart Icon --}}
+                            @auth
+                                @php
+                                    $inWishlist = \App\Models\Wishlist::where('user_id', Auth::id())
+                                        ->where('product_id', $product->id)
+                                        ->exists();
+                                @endphp
+                                <form 
+                                    action="{{ $inWishlist ? route('admin.wishlist.remove') : route('admin.wishlist.add') }}" 
+                                    method="POST" 
+                                    class="absolute top-3 right-3 z-10"
+                                >
+                                    @csrf
+                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                    <button type="submit" 
+                                        class="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition">
+                                        @if($inWishlist)
+                                            <i class="fas fa-heart text-red-500 text-xl"></i>
+                                        @else
+                                            <i class="far fa-heart text-gray-400 text-xl"></i>
+                                        @endif
+                                    </button>
+                                </form>
+                            @else
+                                <a href="{{ route('login') }}" 
+                                   class="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition">
+                                    <i class="far fa-heart text-gray-400 text-xl"></i>
+                                </a>
+                            @endauth
 
                             {{-- 🖼 Image --}}
                             <div class="relative">
@@ -130,15 +159,14 @@
                                         View Details
                                     </a>
                                     <form action="{{ route('cart.add') }}" method="POST">
-                                    @csrf
-                                    <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                    <input type="hidden" name="quantity" value="1">
-                                    <button type="submit"
-                                        class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition duration-300">
-                                        Add to Cart
-                                    </button>
-                                </form>
-
+                                        @csrf
+                                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                        <input type="hidden" name="quantity" value="1">
+                                        <button type="submit"
+                                            class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition duration-300">
+                                            Add to Cart
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
                         </div>

@@ -10,16 +10,19 @@ class IsAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        // Ensure user is logged in
+        // 🚫 If not logged in, redirect to login
         if (!Auth::check()) {
-            return redirect()->route('login')->with('error', 'Please login first.');
+            return redirect()->route('login.form')->with('error', 'Please login first.');
         }
 
-        // Ensure user is admin
-        if (!Auth::user()->is_admin) {
-            return redirect('/')->with('error', 'Access denied. Admins only.');
+        $user = Auth::user();
+
+        // 🔒 Check if user has admin privileges using helper
+        if (!$user->isAdmin()) {
+            return redirect()->route('home')->with('error', 'Access denied. Admins only.');
         }
 
+        // ✅ Allow request to continue
         return $next($request);
     }
 }

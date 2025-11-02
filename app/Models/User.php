@@ -8,6 +8,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 /**
  * User Model
@@ -29,8 +30,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone',
         'role',
         'is_blocked',
-        'is_admin',     // for IsAdmin middleware
-        'is_active',    // for user status management
+        'is_admin',     // For Admin Middleware
+        'is_active',    // For account status management
     ];
 
     /**
@@ -51,17 +52,19 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_active' => 'boolean',
     ];
 
+    /* ============================================================
+     |                        MUTATORS
+     |============================================================ */
+
     /**
-     * ✅ FIXED: Automatically hash password only if it is not already hashed.
+     * ✅ Automatically hash password if not already hashed.
      */
     public function setPasswordAttribute($value)
     {
         if (!empty($value)) {
-            // Avoid double hashing
-            $this->attributes['password'] = 
-                \Illuminate\Support\Str::startsWith($value, '$2y$')
-                    ? $value
-                    : bcrypt($value);
+            $this->attributes['password'] = Str::startsWith($value, '$2y$')
+                ? $value
+                : bcrypt($value);
         }
     }
 
@@ -75,13 +78,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     public function cart()
-{
-    return $this->hasOne(Cart::class);
-}
-public function cartItems()
-{
-    return $this->hasMany(CartItem::class);
-}
+    {
+        return $this->hasOne(Cart::class);
+    }
+
+    public function cartItems()
+    {
+        return $this->hasMany(CartItem::class);
+    }
 
     public function reviews()
     {
@@ -126,6 +130,9 @@ public function cartItems()
      |                        HELPER METHODS
      |============================================================ */
 
+    /**
+     * ✅ Role-based checks
+     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin' || (bool) $this->is_admin;
@@ -136,6 +143,14 @@ public function cartItems()
         return $this->role === 'vendor';
     }
 
+    public function isCustomer(): bool
+    {
+        return $this->role === 'customer';
+    }
+
+    /**
+     * ✅ Status checks
+     */
     public function isBlocked(): bool
     {
         return (bool) $this->is_blocked;
@@ -153,6 +168,7 @@ public function cartItems()
     protected static function booted()
     {
         static::deleting(function ($user) {
+            // Clean up tokens on user delete
             if (method_exists($user, 'tokens')) {
                 $user->tokens()->delete();
             }
