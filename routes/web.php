@@ -14,6 +14,8 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\Admin\DashboardController;
+
 
 
 /*
@@ -91,6 +93,11 @@ Route::middleware(['auth'])->group(function () {
 //
 Route::middleware(['auth'])->group(function () {
 
+    // Profiles
+    Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
+    Route::post('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+    Route::post('/profile/avatar', [AuthController::class, 'updateAvatar'])->name('profile.avatar.update');
+
     // 🛍️ Cart
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
@@ -117,62 +124,72 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/stripe/webhook', [StripeWebhookController::class, 'handleWebhook']);
     // wishList
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
-    Route::post('/wishlist/add/{product}', [WishlistController::class, 'add'])->name('wishlist.add');
-    Route::delete('/wishlist/remove/{product}', [WishlistController::class, 'remove'])->name('wishlist.remove');
-});
-
-
-
-//
-// =======================
-// 🧾 ADMIN PANEL ROUTES
-// =======================
-//
-Route::get('/admin', [AdminController::class, 'index']);
-
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-
-    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-
-    // 🛒 Manage Products
-    Route::get('/products', [ProductController::class, 'adminIndex'])->name('products.index');
-    Route::get('/products/create', [ProductController::class, 'create'])->name('products.create');
-    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-    Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{id}', [ProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{id}', [ProductController::class, 'destroy'])->name('products.destroy');
-
-
-    // Profiles
-    
-    Route::get('/profile', [AdminController::class, 'profile'])->name('profile');
-    Route::put('/profile/update', [AdminController::class, 'updateProfile'])->name('profile.update');
-    Route::get('/profile/edit', [AdminController::class, 'editProfile'])->name('profile.edit');
-
-    // 🗂️ Manage Categories
-    Route::get('/categories', [CategoryController::class, 'adminIndex'])->name('categories.index');
-    Route::get('/categories/create', [CategoryController::class, 'create'])->name('categories.create');
-    Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
-    Route::get('/categories/{id}/edit', [CategoryController::class, 'edit'])->name('categories.edit');
-    Route::put('/categories/{id}', [CategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy'])->name('categories.destroy');
-
-    // 📦 Manage Orders
-    Route::get('/orders', [OrderController::class, 'adminIndex'])->name('orders.index');
-    Route::get('/orders/{id}', [OrderController::class, 'adminShow'])->name('orders.show');
-    Route::put('/orders/{id}/status', [OrderController::class, 'updateStatus'])->name('orders.updateStatus');
-
-    // 🎟️ Manage Coupons
-    Route::get('/coupons', [CouponController::class, 'index'])->name('coupons.index');
-    Route::post('/coupons', [CouponController::class, 'store'])->name('coupons.store');
-    Route::delete('/coupons/{id}', [CouponController::class, 'destroy'])->name('coupons.destroy');
-
-    // WishList
-    Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/add', [WishlistController::class, 'add'])->name('wishlist.add');
     Route::post('/wishlist/remove', [WishlistController::class, 'remove'])->name('wishlist.remove');
-
 });
+
+
+
+Route::get('/admin', function () {
+    return redirect()->route('admin.dashboard');
+});
+
+// ✅ All Admin Routes
+Route::middleware(['auth', 'admin'])
+    ->prefix('admin')
+    ->as('admin.')
+    ->group(function () {
+
+        // 🏠 Dashboard
+        Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
+
+        // 👤 Admin Profile
+        Route::controller(AdminController::class)->group(function () {
+            Route::get('/profile', 'profile')->name('profile');
+            Route::get('/profile/edit', 'editProfile')->name('profile.edit');
+            Route::put('/profile/update', 'updateProfile')->name('profile.update');
+        });
+
+        // 🛍️ Products
+        Route::controller(ProductController::class)->group(function () {
+            Route::get('/products', 'adminIndex')->name('products.index');
+            Route::get('/products/create', 'create')->name('products.create');
+            Route::post('/products', 'store')->name('products.store');
+            Route::get('/products/{id}/edit', 'edit')->name('products.edit');
+            Route::put('/products/{id}', 'update')->name('products.update');
+            Route::delete('/products/{id}', 'destroy')->name('products.destroy');
+        });
+
+        // 📦 Categories
+        Route::controller(CategoryController::class)->group(function () {
+            Route::get('/categories', 'adminIndex')->name('categories.index');
+            Route::get('/categories/create', 'create')->name('categories.create');
+            Route::post('/categories', 'store')->name('categories.store');
+            Route::get('/categories/{id}/edit', 'edit')->name('categories.edit');
+            Route::put('/categories/{id}', 'update')->name('categories.update');
+            Route::delete('/categories/{id}', 'destroy')->name('categories.destroy');
+        });
+
+        // 🧾 Orders
+        Route::controller(OrderController::class)->group(function () {
+            Route::get('/orders', 'adminIndex')->name('orders.index');
+            Route::get('/orders/{id}', 'adminShow')->name('orders.show');
+            Route::put('/orders/{id}/status', 'updateStatus')->name('orders.updateStatus');
+        });
+
+        // 🎟️ Coupons
+        Route::controller(CouponController::class)->group(function () {
+            Route::get('/coupons', 'index')->name('coupons.index');
+            Route::post('/coupons', 'store')->name('coupons.store');
+            Route::delete('/coupons/{id}', 'destroy')->name('coupons.destroy');
+        });
+
+        // 💖 Wishlist
+        Route::controller(WishlistController::class)->group(function () {
+            Route::get('/wishlist', 'index')->name('wishlist.index');
+            Route::delete('/wishlist/{id}', 'destroy')->name('wishlist.destroy');
+        });
+    });
 
 
 

@@ -65,23 +65,14 @@ class Kernel extends HttpKernel
     /**
      * ---------------------------------------------------------
      * Middleware Aliases (Route Middleware)
-     * These can be used in routes/web.php for quick reference.
      * ---------------------------------------------------------
      */
     protected $middlewareAliases = [
-        // Default auth middleware
-        'auth' => \App\Http\Middleware\Authenticate::class,
+    'auth' => \App\Http\Middleware\Authenticate::class,
+    'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
+    'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
 
-        // Redirect if already authenticated
-        'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,
-
-        // Basic HTTP authentication
-        'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
-
-        // Ensure the user has a verified email
-        'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
-
-        // ✅ Custom Role-based Admin Middleware
-        'isAdmin' => \App\Http\Middleware\IsAdmin::class,
-    ];
+    // ✅ Custom Admin Middleware
+    'admin' => \App\Http\Middleware\AdminMiddleware::class,
+];
 }

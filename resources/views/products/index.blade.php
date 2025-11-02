@@ -4,7 +4,6 @@
 
 @section('content')
 <div class="container mx-auto px-4 py-10">
-
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
 
         {{-- ==========================
@@ -16,7 +15,6 @@
             </h2>
 
             <form method="GET" action="{{ route('products.index') }}" class="space-y-5">
-
                 {{-- 🔍 Search --}}
                 <div>
                     <label class="block text-gray-700 font-medium mb-1">Search</label>
@@ -107,19 +105,16 @@
                                         ->exists();
                                 @endphp
                                 <form 
-                                    action="{{ $inWishlist ? route('admin.wishlist.remove') : route('admin.wishlist.add') }}" 
+                                    action="{{ $inWishlist ? route('wishlist.remove') : route('wishlist.add') }}" 
                                     method="POST" 
-                                    class="absolute top-3 right-3 z-10"
+                                    class="absolute top-3 right-3 z-10 wishlist-form"
+                                    data-product-id="{{ $product->id }}"
                                 >
                                     @csrf
                                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                                     <button type="submit" 
-                                        class="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition">
-                                        @if($inWishlist)
-                                            <i class="fas fa-heart text-red-500 text-xl"></i>
-                                        @else
-                                            <i class="far fa-heart text-gray-400 text-xl"></i>
-                                        @endif
+                                        class="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition wishlist-btn {{ $inWishlist ? 'text-red-500' : 'text-gray-400' }}">
+                                        <i class="fas {{ $inWishlist ? 'fa-heart' : 'fa-heart' }}"></i>
                                     </button>
                                 </form>
                             @else
@@ -185,4 +180,59 @@
         </div>
     </div>
 </div>
+
+{{-- ==========================
+     ❤️ AJAX WISHLIST SCRIPT
+========================== --}}
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const forms = document.querySelectorAll('.wishlist-form');
+
+    forms.forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const button = form.querySelector('.wishlist-btn');
+            const icon = button.querySelector('i');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: new FormData(form)
+                });
+
+                const data = await response.json();
+
+                if (data.status) {
+                    button.classList.toggle('text-red-500');
+                    button.classList.toggle('text-gray-400');
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Something went wrong!', 'error');
+            }
+        });
+    });
+
+    // Toast Notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-5 right-5 px-4 py-3 rounded-lg text-white shadow-lg transition transform duration-500 ${
+            type === 'error' ? 'bg-red-600' : 'bg-green-600'
+        }`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+    }
+});
+</script>
+@endpush
 @endsection

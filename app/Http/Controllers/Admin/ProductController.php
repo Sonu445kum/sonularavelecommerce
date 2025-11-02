@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Facades\Storage;
 
-class AdminProductController extends Controller
+class ProductController extends Controller
 {
     public function __construct() { $this->middleware(['auth','can:access-admin']); }
 

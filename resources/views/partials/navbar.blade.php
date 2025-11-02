@@ -30,44 +30,39 @@
                     $cartCount = \App\Models\CartItem::whereHas('cart', fn($q) => $q->where('user_id', auth()->id()))->count();
                 @endphp
 
-                {{-- ❤️ Wishlist --}}
-                @if(!Auth::user()->is_admin && Route::has('wishlist.index'))
-                    <a href="{{ route('wishlist.index') }}" class="relative text-gray-800 hover:text-pink-600">
-                        <i class="fas fa-heart text-xl"></i>
-                        @if($wishlistCount > 0)
-                            <span class="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full px-1">
-                                {{ $wishlistCount }}
-                            </span>
-                        @endif
-                    </a>
-                @endif
+                {{-- ❤️ Wishlist (Visible for All Logged Users) --}}
+                <a href="{{ route('wishlist.index') }}" class="relative text-gray-800 hover:text-pink-600">
+                    <i class="fas fa-heart text-xl"></i>
+                    @if($wishlistCount > 0)
+                        <span class="absolute -top-2 -right-2 bg-pink-600 text-white text-xs rounded-full px-1">
+                            {{ $wishlistCount }}
+                        </span>
+                    @endif
+                </a>
 
-                {{-- 📦 Orders --}}
-                @if(!Auth::user()->is_admin)
-                    <a href="{{ route('orders.index') }}" class="text-gray-800 hover:text-blue-600 text-sm font-medium">
-                        <i class="fas fa-box"></i> My Orders
-                    </a>
-                @endif
+                {{-- 📦 Orders (Visible for All Logged Users) --}}
+                <a href="{{ route('orders.index') }}" class="text-gray-800 hover:text-blue-600 text-sm font-medium">
+                    <i class="fas fa-box"></i> My Orders
+                </a>
 
-                {{-- 🛒 Cart --}}
-                @if(!Auth::user()->is_admin)
-                    <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.25 3h1.386c.51 0 .955.343 1.09.835l.383 1.435m0 0L6.75 14.25h10.5l1.636-8.98a1.125 1.125 0 00-1.11-1.32H4.119m.99 3.57h13.5" />
-                        </svg>
-                        @if($cartCount > 0)
-                            <span class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
-                                {{ $cartCount }}
-                            </span>
-                        @endif
-                    </a>
-                @endif
+                {{-- 🛒 Cart (Visible for All Logged Users) --}}
+                <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M2.25 3h1.386c.51 0 .955.343 1.09.835l.383 1.435m0 0L6.75 14.25h10.5l1.636-8.98a1.125 1.125 0 00-1.11-1.32H4.119m.99 3.57h13.5" />
+                    </svg>
+                    @if($cartCount > 0)
+                        <span class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
+                            {{ $cartCount }}
+                        </span>
+                    @endif
+                </a>
 
                 {{-- 👤 Dropdown --}}
-                <div class="relative group">
-                    <button class="flex items-center space-x-1 text-gray-800 hover:text-blue-600 font-semibold">
+                <div class="relative">
+                    <button id="user-menu-btn"
+                        class="flex items-center space-x-1 text-gray-800 hover:text-blue-600 font-semibold focus:outline-none">
                         <span>{{ Auth::user()->is_admin ? '⚙️ Admin' : Auth::user()->name }}</span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                             viewBox="0 0 24 24" stroke="currentColor">
@@ -77,31 +72,34 @@
                     </button>
 
                     {{-- Dropdown Menu --}}
-                    <div
-                        class="absolute right-0 mt-2 w-48 bg-gray-50 border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 z-50">
+                    <div id="user-dropdown"
+    class="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg hidden transition-all duration-200 z-50">
 
-                        {{-- 🔧 Admin Menu --}}
-                        @if(Auth::user()->is_admin)
-                            <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                                📊 Dashboard
-                            </a>
-                            <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                                👤 Profile
-                            </a>
-                        @else
-                            {{-- 👤 User Menu --}}
-                            <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                                👤 Profile
-                            </a>
-                        @endif
+    {{-- 🔧 Admin Menu --}}
+    @if(Auth::user()->is_admin)
+        <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+            📊 Dashboard
+        </a>
+        <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+            👤 Profile
+        </a>
+        <a href="{{ route('admin.wishlist.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+            ❤️ Wishlist
+        </a>
+    @else
+        {{-- 👤 User Menu --}}
+        <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+            👤 Profile
+        </a>
+    @endif
 
-                        <div class="border-t my-1"></div>
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit"
-                                class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">🚪 Logout</button>
-                        </form>
-                    </div>
+    <div class="border-t my-1"></div>
+    <form action="{{ route('logout') }}" method="POST">
+        @csrf
+        <button type="submit"
+            class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50">🚪 Logout</button>
+    </form>
+</div>
                 </div>
             @else
                 {{-- 🔹 Guest Buttons --}}
@@ -135,18 +133,19 @@
         <a href="{{ route('products.index') }}" class="mobile-link">Products</a>
 
         @auth
+            <a href="{{ route('wishlist.index') }}" class="mobile-link text-pink-600 font-semibold">❤️ Wishlist</a>
+            <a href="{{ route('orders.index') }}" class="mobile-link">📦 My Orders</a>
+            <a href="{{ route('cart.index') }}" class="mobile-link flex items-center">
+                🛒 Cart
+                @if($cartCount > 0)
+                    <span class="ml-2 bg-red-600 text-white text-xs rounded-full px-2">{{ $cartCount }}</span>
+                @endif
+            </a>
+
             @if(Auth::user()->is_admin)
-                <a href="{{ route('admin.dashboard') }}" class="mobile-link">📊 Dashboard</a>
-                <a href="{{ route('admin.profile.edit') }}" class="mobile-link">👤 Profile</a>
+                <a href="{{ route('admin.dashboard') }}" class="mobile-link">⚙️ Admin Dashboard</a>
+                <a href="{{ route('admin.profile.edit') }}" class="mobile-link">👤 Admin Profile</a>
             @else
-                <a href="{{ route('wishlist.index') }}" class="mobile-link text-pink-600 font-semibold">❤️ Wishlist</a>
-                <a href="{{ route('orders.index') }}" class="mobile-link">📦 My Orders</a>
-                <a href="{{ route('cart.index') }}" class="mobile-link flex items-center">
-                    🛒 Cart
-                    @if($cartCount > 0)
-                        <span class="ml-2 bg-red-600 text-white text-xs rounded-full px-2">{{ $cartCount }}</span>
-                    @endif
-                </a>
                 <a href="{{ route('profile') }}" class="mobile-link">👤 Profile</a>
             @endif
 
@@ -180,9 +179,26 @@
         }
     </style>
 
+    {{-- ✅ Scripts --}}
     <script>
         document.getElementById('menu-btn').addEventListener('click', () => {
             document.getElementById('mobile-menu').classList.toggle('hidden');
         });
+
+        const userMenuBtn = document.getElementById('user-menu-btn');
+        const userDropdown = document.getElementById('user-dropdown');
+
+        if (userMenuBtn && userDropdown) {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                userDropdown.classList.toggle('hidden');
+            });
+
+            window.addEventListener('click', (e) => {
+                if (!userDropdown.contains(e.target) && !userMenuBtn.contains(e.target)) {
+                    userDropdown.classList.add('hidden');
+                }
+            });
+        }
     </script>
 </nav>
