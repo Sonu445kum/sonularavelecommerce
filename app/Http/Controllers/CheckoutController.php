@@ -5,13 +5,18 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OrderPlacedMail;
+use App\Mail\AdminNewOrderMail;
 use App\Models\Cart;
 use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Coupon;
+use App\Models\Notification;
+use App\Models\User;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
+use Exception;
 
 class CheckoutController extends Controller
 {
@@ -117,7 +122,7 @@ class CheckoutController extends Controller
         $user = Auth::user();
         $isGuest = !$user;
 
-        // 🛒 Fetch cart
+        // 🛒 Get Cart
         if ($isGuest) {
             $sessionCart = session()->get('cart', []);
             if (empty($sessionCart)) {
@@ -156,28 +161,26 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($it) => $it->price * $it->quantity);
         }
 
-        // 💰 Coupon & total calculation
+        // 💰 Coupon & total
         $coupon = session('coupon', []);
         $discount = 0;
         $couponCode = null;
 
-        if (!empty($coupon) && isset($coupon['type']) && isset($coupon['value'])) {
+        if (!empty($coupon)) {
             $couponCode = $coupon['code'] ?? null;
             $type = $coupon['type'];
             $value = $coupon['value'];
 
-            if ($type === 'percent') {
-                $discount = $subtotal * ($value / 100);
-            } else {
-                $discount = $value;
-            }
+            $discount = $type === 'percent'
+                ? $subtotal * ($value / 100)
+                : $value;
         }
 
         $shipping = 50;
         $totalAmount = max(0, $subtotal - $discount + $shipping);
 
         /**
-         * 💳 Online Payments (Stripe / Razorpay)
+         * 💳 Online Payment (Stripe / Razorpay)
          */
         if (in_array($req->payment_method, ['card', 'razorpay'])) {
             DB::beginTransaction();
@@ -196,51 +199,75 @@ class CheckoutController extends Controller
 
                 foreach ($items as $item) {
                     $product = $item->product;
-                    $productImage = $product->featured_image ?? ($product->images->first()->path ?? 'images/default-product.jpg');
+                    $image = $product->featured_image ?? ($product->images->first()->path ?? 'images/default.jpg');
 
                     $order->items()->create([
-                        'product_id'    => $product->id ?? $item->product_id,
-                        'quantity'      => $item->quantity,
-                        'product_name'  => $product->title ?? $product->name ?? 'Unnamed Product',
-                        'product_sku'   => $product->sku ?? 'N/A',
-                        'product_image' => $productImage,
-                        'unit_price'    => $product->price ?? 0,
-                        'total_price'   => ($product->price ?? 0) * $item->quantity,
+                        'product_id' => $product->id,
+                        'quantity' => $item->quantity,
+                        'product_name' => $product->title ?? $product->name,
+                        'product_image' => $image,
+                        'unit_price' => $product->price,
+                        'total_price' => $product->price * $item->quantity,
                     ]);
                 }
 
-                $stripeSecret = config('services.stripe.secret') ?? env('STRIPE_SECRET');
-                if (empty($stripeSecret)) {
-                    DB::rollBack();
-                    return redirect()->route('checkout.index')->withErrors('Stripe not configured.');
+                // 🔔 Notifications
+                Notification::create([
+                    'user_id' => $user->id,
+                    'title' => 'Order Placed Successfully',
+                    'message' => "Your order #{$order->id} has been placed successfully. Total ₹" . number_format($order->total, 2),
+                    'type' => 'order',
+                    'is_read' => false,
+                ]);
+
+                $admins = User::where('is_admin', true)->get();
+
+                foreach ($admins as $admin) {
+                    Notification::create([
+                        'user_id' => $admin->id,
+                        'title' => '🛒 New Order Received',
+                        'message' => "New order #{$order->id} from {$user->name}. Total ₹" . number_format($order->total, 2),
+                        'type' => 'admin_order',
+                        'is_read' => false,
+                    ]);
                 }
 
-                Stripe::setApiKey($stripeSecret);
+                // 📧 Send Emails
+                try {
+                    \Log::info("📧 Sending OrderPlacedMail to user: {$user->email}");
+                    Mail::to($user->email)->queue(new OrderPlacedMail($order));
 
+                    foreach ($admins as $admin) {
+                        Mail::to($admin->email)->queue(new AdminNewOrderMail($order, $user));
+                    }
+                } catch (Exception $e) {
+                    \Log::error('❌ Email sending failed: ' . $e->getMessage());
+                }
+
+                // 💳 Stripe Payment Intent
+                Stripe::setApiKey(config('services.stripe.secret'));
                 $paymentIntent = PaymentIntent::create([
                     'amount' => (int) round($totalAmount * 100),
                     'currency' => 'inr',
                     'metadata' => [
                         'order_id' => $order->id,
-                        'user_id' => $user->id ?? 'guest',
+                        'user_id' => $user->id,
                     ],
                 ]);
 
                 $order->update(['payment_intent_id' => $paymentIntent->id]);
                 DB::commit();
 
-                return redirect()->route('checkout.success', [
-                    'order_id' => $order->id,
-                    'payment_intent_id' => $paymentIntent->id,
-                ]);
-            } catch (\Throwable $e) {
+                return redirect()->route('checkout.success', ['order_id' => $order->id]);
+            } catch (Exception $e) {
                 DB::rollBack();
-                return back()->withErrors('Payment error: ' . $e->getMessage());
+                \Log::error('💥 Order creation failed: ' . $e->getMessage());
+                return back()->withErrors('Payment failed: ' . $e->getMessage());
             }
         }
 
         /**
-         * 💵 Cash on Delivery
+         * 💵 COD (Cash on Delivery)
          */
         DB::beginTransaction();
         try {
@@ -259,17 +286,47 @@ class CheckoutController extends Controller
 
             foreach ($items as $item) {
                 $product = $item->product;
-                $productImage = $product->featured_image ?? ($product->images->first()->path ?? 'images/default-product.jpg');
+                $image = $product->featured_image ?? ($product->images->first()->path ?? 'images/default.jpg');
 
                 $order->items()->create([
-                    'product_id'    => $product->id ?? $item->product_id,
-                    'quantity'      => $item->quantity,
-                    'product_name'  => $product->title ?? $product->name ?? 'Unnamed Product',
-                    'product_sku'   => $product->sku ?? 'N/A',
-                    'product_image' => $productImage,
-                    'unit_price'    => $product->price ?? 0,
-                    'total_price'   => ($product->price ?? 0) * $item->quantity,
+                    'product_id' => $product->id,
+                    'quantity' => $item->quantity,
+                    'product_name' => $product->title ?? $product->name,
+                    'product_image' => $image,
+                    'unit_price' => $product->price,
+                    'total_price' => $product->price * $item->quantity,
                 ]);
+            }
+
+            Notification::create([
+                'user_id' => $user->id,
+                'title' => 'Order Placed Successfully (COD)',
+                'message' => "Your order #{$order->id} placed successfully. Total ₹" . number_format($order->total, 2),
+                'type' => 'order',
+                'is_read' => false,
+            ]);
+
+            $admins = User::where('is_admin', true)->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'title' => 'New COD Order Received',
+                    'message' => "COD Order #{$order->id} from {$user->name}. Total ₹" . number_format($order->total, 2),
+                    'type' => 'admin_order',
+                    'is_read' => false,
+                ]);
+            }
+
+            // 📧 Emails
+            try {
+                \Log::info("📧 Sending COD OrderPlacedMail to user: {$user->email}");
+                Mail::to($user->email)->queue(new OrderPlacedMail($order));
+
+                foreach ($admins as $admin) {
+                    Mail::to($admin->email)->queue(new AdminNewOrderMail($order, $user));
+                }
+            } catch (Exception $e) {
+                \Log::error('❌ Email sending failed: ' . $e->getMessage());
             }
 
             if (!$isGuest) {
@@ -284,19 +341,19 @@ class CheckoutController extends Controller
 
             return redirect()->route('checkout.success', ['order_id' => $order->id])
                 ->with('success', 'Order placed successfully (COD)!');
-        } catch (\Throwable $e) {
+        } catch (Exception $e) {
             DB::rollBack();
-            return back()->withErrors('Unable to place order: ' . $e->getMessage());
+            \Log::error('💥 COD Order Failed: ' . $e->getMessage());
+            return back()->withErrors('Error placing order: ' . $e->getMessage());
         }
     }
 
     /**
-     * ✅ Payment success page (with coupon reflection)
+     * ✅ Success page
      */
-    public function success(Request $request)
+    public function success(Request $req)
     {
-        $order = Order::find($request->order_id);
-
+        $order = Order::find($req->order_id);
         if (!$order) {
             return redirect()->route('home')->withErrors('Order not found.');
         }
@@ -316,15 +373,14 @@ class CheckoutController extends Controller
         }
 
         $coupon = $order->coupon_code ?? null;
-
         return view('checkout.success', compact('order', 'coupon'));
     }
 
     /**
-     * ❌ Payment cancel page
+     * ❌ Cancel page
      */
     public function cancel()
     {
-        return view('checkout.cancel')->withErrors('Payment cancelled. Please try again.');
+        return view('checkout.cancel')->withErrors('Payment cancelled.');
     }
 }

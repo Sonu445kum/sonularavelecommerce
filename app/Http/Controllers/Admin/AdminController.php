@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Payment;
 use App\Models\Wishlist;
+use App\Models\Notification;
+use App\Mail\OrderPlacedMail;
 
 class AdminController extends Controller
 {
@@ -18,42 +21,44 @@ class AdminController extends Controller
      * ------------------------------------------
      * 🏠 Admin Dashboard
      * ------------------------------------------
-     * Show the main admin dashboard page
+     * Show the main admin dashboard page with notifications
      */
     public function dashboard()
     {
-        // Get all statistics
+        // 🔢 Stats
         $totalProducts = Product::count();
         $totalOrders = Order::count();
         $totalCategories = Category::count();
         $totalUsers = User::count();
-        
-        // Calculate total revenue (sum of all completed/delivered orders)
+
+        // 💰 Total revenue (completed/delivered)
         $totalRevenue = Order::whereIn('status', ['completed', 'delivered'])->sum('total');
-        
-        // Count pending payments
+
+        // ⏳ Pending payments
         $pendingPayments = Payment::where('status', 'pending')->count();
-        
-        // Count wishlist items
+
+        // 💖 Total wishlists
         $wishlistCount = Wishlist::count();
-        
-        // Get recent orders (last 10) with user relationship
-        $recentOrders = Order::with('user')
+
+        // 🧾 Recent orders
+        $recentOrders = Order::with('user')->latest()->take(10)->get();
+
+        // 👥 Recent users
+        $recentUsers = User::latest()->take(10)->get();
+
+        // 💳 Recent payments
+        $recentPayments = Payment::with(['order.user'])->latest()->take(10)->get();
+
+        // 🔔 Admin Notifications
+        $notifications = Notification::where('user_id', auth()->id())
             ->latest()
             ->take(10)
             ->get();
-        
-        // Get recent users (last 10)
-        $recentUsers = User::latest()
-            ->take(10)
-            ->get();
-        
-        // Get recent payments (last 10) - Payment doesn't have direct user relationship, so we'll get through order
-        $recentPayments = Payment::with(['order.user'])
-            ->latest()
-            ->take(10)
-            ->get();
-        
+
+        $unreadCount = Notification::where('user_id', auth()->id())
+            ->where('is_read', false)
+            ->count();
+
         return view('admin.dashboard', compact(
             'totalProducts',
             'totalOrders',
@@ -64,8 +69,33 @@ class AdminController extends Controller
             'wishlistCount',
             'recentOrders',
             'recentUsers',
-            'recentPayments'
+            'recentPayments',
+            'notifications',
+            'unreadCount'
         ));
+    }
+
+    /**
+     * ------------------------------------------
+     * 📨 Handle New Order Notification
+     * ------------------------------------------
+     * When a new order is placed, create admin notification + email
+     */
+    public static function notifyNewOrder(Order $order)
+    {
+        // 🧾 Create admin notification
+        Notification::sendToAdmin(
+            '🛒 New Order Received',
+            "Order #{$order->id} placed by {$order->user->name} (Total ₹{$order->total})",
+            [
+                'order_id' => $order->id,
+                'amount' => $order->total,
+                'user' => $order->user->name,
+            ]
+        );
+
+        // 📧 Send confirmation email to user
+        Mail::to($order->user->email)->send(new OrderPlacedMail($order));
     }
 
     /**
@@ -99,30 +129,25 @@ class AdminController extends Controller
     {
         $user = auth()->user();
 
-        // ✅ Validate Input
+        // ✅ Validate
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
         ];
 
-        // Only add profile_image validation if a file is actually present and valid
-        // Use 'sometimes' which only validates when the field is present in the request
         if ($request->hasFile('profile_image')) {
             $file = $request->file('profile_image');
-            // Double check: file must exist, be valid, have no errors, and have size
-            if ($file && $file->isValid() && $file->getError() === UPLOAD_ERR_OK && $file->getSize() > 0) {
-                // File is valid, add validation rule
+            if ($file && $file->isValid()) {
                 $rules['profile_image'] = 'required|image|mimes:jpeg,jpg,png|max:2048';
             }
         }
 
         $validated = $request->validate($rules);
 
-        // ✅ Handle Profile Image Upload
+        // 📸 Handle Profile Image
         if ($request->hasFile('profile_image')) {
             $profileImage = $request->file('profile_image');
-            if ($profileImage && $profileImage->isValid() && $profileImage->getError() === UPLOAD_ERR_OK) {
-                // Delete old image if exists
+            if ($profileImage && $profileImage->isValid()) {
                 if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
@@ -132,7 +157,7 @@ class AdminController extends Controller
             }
         }
 
-        // ✅ Update user details
+        // 📝 Update user info
         $user->name = $request->name;
         $user->email = $request->email;
         $user->save();

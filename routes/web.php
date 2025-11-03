@@ -21,6 +21,8 @@ use App\Http\Controllers\Admin\AdminWishlistController;
 use App\Http\Controllers\Admin\AdminProductController;
 use App\Http\Controllers\Admin\AdminCouponController;
 use App\Http\Controllers\Admin\AdminPaymentController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\WebRTCController;
 
 
 
@@ -132,6 +134,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist.index');
     Route::post('/wishlist/add', [WishlistController::class, 'add'])->name('wishlist.add');
     Route::post('/wishlist/remove', [WishlistController::class, 'remove'])->name('wishlist.remove');
+
+    // 🔔 Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/unread', [NotificationController::class, 'getUnread'])->name('notifications.unread');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.readAll');
+
+    // 📞 WebRTC Support Chat
+    Route::get('/support-chat', [WebRTCController::class, 'index'])->name('support.chat');
+    Route::post('/webrtc/signal', [WebRTCController::class, 'signal'])->name('webrtc.signal');
 });
 
 

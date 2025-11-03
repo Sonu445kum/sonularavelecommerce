@@ -12,10 +12,10 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Support\Str;
 
 /**
- * User Model
+ * Class User
  *
- * Handles user authentication, roles, soft deletes,
- * email verification, and relationships with orders, reviews, wishlist, etc.
+ * Represents an application user with authentication, roles, 
+ * soft deletes, notifications, and relationships to orders, reviews, etc.
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -31,12 +31,12 @@ class User extends Authenticatable implements MustVerifyEmail
         'phone',
         'role',
         'is_blocked',
-        'is_admin',     // For Admin Middleware
-        'is_active',    // For account status management
+        'is_admin',
+        'is_active',
     ];
 
     /**
-     * The attributes that should be hidden for arrays or JSON responses.
+     * The attributes that should be hidden for arrays or JSON.
      */
     protected $hidden = [
         'password',
@@ -58,7 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail
      |============================================================ */
 
     /**
-     * ✅ Automatically hash password if not already hashed.
+     * ✅ Automatically hash the password if it's not already hashed.
      */
     public function setPasswordAttribute($value)
     {
@@ -93,9 +93,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Review::class);
     }
 
+    /**
+     * ✅ Custom relationship for in-app notifications.
+     */
     public function notificationsCustom()
     {
-        return $this->hasMany(Notification::class);
+        return $this->hasMany(Notification::class, 'user_id')
+                    ->orderByDesc('created_at');
     }
 
     public function coupons()
@@ -114,12 +118,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function scopeActive($query)
     {
-        return $query->where('is_blocked', false)->where('is_active', true);
+        return $query->where('is_blocked', false)
+                     ->where('is_active', true);
     }
 
     public function scopeAdmins($query)
     {
-        return $query->where('role', 'admin')->orWhere('is_admin', true);
+        return $query->where('role', 'admin')
+                     ->orWhere('is_admin', true);
     }
 
     public function scopeVendors($query)
@@ -128,12 +134,9 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /* ============================================================
-     |                        HELPER METHODS
+     |                        ROLE & STATUS HELPERS
      |============================================================ */
 
-    /**
-     * ✅ Role-based checks
-     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin' || (bool) $this->is_admin;
@@ -149,9 +152,6 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === 'customer';
     }
 
-    /**
-     * ✅ Status checks
-     */
     public function isBlocked(): bool
     {
         return (bool) $this->is_blocked;
@@ -163,20 +163,19 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /* ============================================================
-     |                        EVENTS / HOOKS
+     |                        MODEL EVENTS
      |============================================================ */
 
     protected static function booted()
     {
         static::deleting(function ($user) {
-            // Clean up tokens on user delete (if table exists)
             try {
+                // ✅ Clean up tokens on user delete
                 if (method_exists($user, 'tokens') && Schema::hasTable('personal_access_tokens')) {
                     $user->tokens()->delete();
                 }
             } catch (\Exception $e) {
-                // Silently fail if table doesn't exist or token deletion fails
-                // This allows user deletion to proceed even if tokens table is missing
+                // Fail silently if the table or tokens don’t exist
             }
         });
     }

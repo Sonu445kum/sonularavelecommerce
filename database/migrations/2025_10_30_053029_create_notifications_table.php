@@ -14,12 +14,15 @@ return new class extends Migration
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('user_id')->index(); // user who receives the notification
-            $table->string('type'); // type of notification (e.g. OrderPlaced, PaymentSuccess)
-            $table->json('data'); // store message/title/etc. as JSON
-            $table->boolean('read')->default(false); // whether the user read it
+            $table->string('type')->nullable(); // e.g. OrderPlaced, PaymentSuccess
+            $table->string('title')->nullable(); // short title for admin dashboard display
+            $table->text('message')->nullable(); // main message body
+            $table->json('data')->nullable(); // extra data like order_id, amount
+            $table->boolean('is_read')->default(false); // whether notification was read
+            $table->timestamp('read_at')->nullable(); // when it was read
             $table->timestamps();
 
-            // Foreign key relation (optional but recommended)
+            // Foreign key relation
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }

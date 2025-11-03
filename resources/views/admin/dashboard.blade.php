@@ -12,14 +12,41 @@
         <h1 class="fw-bold text-dark">
             <i class="bi bi-speedometer2 me-2 text-primary"></i> Admin Dashboard
         </h1>
-        <span class="text-muted small fw-semibold">Last Updated: {{ now()->format('d M, Y - h:i A') }}</span>
+
+        {{-- 🔔 Notifications Dropdown --}}
+        <div class="dropdown">
+            <button class="btn btn-outline-primary position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bell fs-5"></i>
+                @if(isset($notifications) && $notifications->where('is_read', false)->count() > 0)
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        {{ $notifications->where('is_read', false)->count() }}
+                    </span>
+                @endif
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="notificationDropdown" style="width: 350px;">
+                <li class="dropdown-header fw-bold bg-light py-2 px-3">Notifications</li>
+                @forelse($notifications as $notification)
+                    <li class="px-3 py-2 border-bottom {{ $notification->is_read ? 'bg-light' : 'bg-white' }}">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-bag-check text-primary fs-5 me-2"></i>
+                            <div>
+                                <div class="fw-semibold">{{ $notification->title }}</div>
+                                <small class="text-muted d-block">{{ $notification->message }}</small>
+                                <small class="text-secondary">{{ $notification->created_at->diffForHumans() }}</small>
+                            </div>
+                        </div>
+                    </li>
+                @empty
+                    <li class="text-center text-muted py-3">No notifications found</li>
+                @endforelse
+            </ul>
+        </div>
     </div>
 
     {{-- ============================
          SUMMARY CARDS
     ============================= --}}
     <div class="row g-4">
-        {{-- Common card structure --}}
         @php
             $cards = [
                 ['icon' => 'bi-box-seam', 'title' => 'Total Products', 'value' => $totalProducts ?? 0, 'color' => 'linear-gradient(135deg, #007bff, #00bfff)'],
@@ -209,8 +236,11 @@
         margin: 0;
         color: #111;
     }
-    .table thead th {
-        font-weight: 600;
+    .dropdown-menu li {
+        transition: background 0.2s ease;
+    }
+    .dropdown-menu li:hover {
+        background-color: #f8f9fa;
     }
 </style>
 @endsection
