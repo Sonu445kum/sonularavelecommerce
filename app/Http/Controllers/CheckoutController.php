@@ -48,10 +48,10 @@ class CheckoutController extends Controller
 
             // Get all product IDs from session cart
             $productIds = collect($sessionCart)->pluck('product_id')->toArray();
-            
+
             // Eager load products with images
             $products = Product::with('images')->whereIn('id', $productIds)->get()->keyBy('id');
-            
+
             $items = [];
             foreach ($sessionCart as $item) {
                 $product = $products->get($item['product_id']);
@@ -93,7 +93,14 @@ class CheckoutController extends Controller
             return back()->withErrors('Invalid or expired coupon.');
         }
 
-        session()->put('coupon', $coupon->only(['id', 'code', 'discount_type', 'value']));
+        // ✅ Store coupon data in session with correct keys
+        session()->put('coupon', [
+            'id' => $coupon->id,
+            'code' => $coupon->code,
+            'type' => $coupon->type ?? 'fixed',  // default fallback
+            'value' => $coupon->value ?? 0,
+        ]);
+
         return back()->with('success', 'Coupon applied successfully!');
     }
 
@@ -153,14 +160,19 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($it) => $it->price * $it->quantity);
         }
 
-        // 💰 Coupon & total calculation
-        $coupon = session('coupon');
+        // 💰 Coupon & total calculation (safe version)
+        $coupon = session('coupon', []);
         $discount = 0;
 
-        if ($coupon) {
-            $discount = $coupon['discount_type'] === 'percent'
-                ? $subtotal * ($coupon['value'] / 100)
-                : $coupon['value'];
+        if (!empty($coupon) && isset($coupon['type']) && isset($coupon['value'])) {
+            $type = $coupon['type'];
+            $value = $coupon['value'];
+
+            if ($type === 'percent') {
+                $discount = $subtotal * ($value / 100);
+            } else {
+                $discount = $value;
+            }
         }
 
         $shipping = 50;
@@ -185,13 +197,8 @@ class CheckoutController extends Controller
 
                 foreach ($items as $item) {
                     $product = $item->product;
-                    // Get product image: featured_image first, then first image from images relationship
-                    $productImage = $product->featured_image ?? null;
-                    if (!$productImage && $product->images && $product->images->count() > 0) {
-                        $productImage = $product->images->first()->path;
-                    }
-                    $productImage = $productImage ?? 'images/default-product.jpg';
-                    
+                    $productImage = $product->featured_image ?? ($product->images->first()->path ?? 'images/default-product.jpg');
+
                     $order->items()->create([
                         'product_id'    => $product->id ?? $item->product_id,
                         'quantity'      => $item->quantity,
@@ -253,13 +260,8 @@ class CheckoutController extends Controller
 
             foreach ($items as $item) {
                 $product = $item->product;
-                // Get product image: featured_image first, then first image from images relationship
-                $productImage = $product->featured_image ?? null;
-                if (!$productImage && $product->images && $product->images->count() > 0) {
-                    $productImage = $product->images->first()->path;
-                }
-                $productImage = $productImage ?? 'images/default-product.jpg';
-                
+                $productImage = $product->featured_image ?? ($product->images->first()->path ?? 'images/default-product.jpg');
+
                 $order->items()->create([
                     'product_id'    => $product->id ?? $item->product_id,
                     'quantity'      => $item->quantity,

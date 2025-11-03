@@ -23,8 +23,8 @@ class CouponController extends Controller
         $coupon = Coupon::where('code', $request->code)
             ->where('is_active', true)
             ->where(function ($query) {
-                $query->whereNull('expiry_date')
-                      ->orWhere('expiry_date', '>=', now());
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>=', now());
             })
             ->first();
 
@@ -35,8 +35,8 @@ class CouponController extends Controller
         // 💾 Store coupon data in session
         Session::put('coupon', [
             'code' => $coupon->code,
-            'discount_type' => $coupon->discount_type, // 'fixed' or 'percent'
-            'discount_value' => $coupon->discount_value,
+            'discount_type' => $coupon->type, // changed from discount_type → type
+            'discount_value' => $coupon->value, // changed from discount_value → value
         ]);
 
         return back()->with('success', 'Coupon applied successfully!');

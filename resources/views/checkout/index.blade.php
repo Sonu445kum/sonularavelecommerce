@@ -101,25 +101,20 @@
                         <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
                             @foreach($cartItems as $item)
                                 @php
-                                    // Try featured_image first, then first image from images relationship, then fallback
                                     $imageUrl = null;
                                     if ($item->product) {
-                                        // Check featured_image
                                         if ($item->product->featured_image) {
                                             $imagePath = $item->product->featured_image;
                                             $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
                                                 ? $imagePath
                                                 : asset('storage/' . ltrim($imagePath, '/'));
-                                        }
-                                        // Fallback to first image in images relationship
-                                        elseif ($item->product->images && $item->product->images->count() > 0) {
+                                        } elseif ($item->product->images && $item->product->images->count() > 0) {
                                             $imagePath = $item->product->images->first()->path;
                                             $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
                                                 ? $imagePath
                                                 : asset('storage/' . ltrim($imagePath, '/'));
                                         }
                                     }
-                                    // Final fallback
                                     $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
                                     $productName = $item->product->title ?? $item->product->name ?? 'Unnamed Product';
                                 @endphp
@@ -147,12 +142,14 @@
                             $subtotal = $cartItems->sum(fn($item) => $item->price * $item->quantity);
                             $shipping = 50;
                             $discount = 0;
+                            $coupon = session('coupon');
 
-                            if (session('coupon')) {
-                                $coupon = session('coupon');
-                                $discount = ($coupon['discount_type'] === 'fixed')
-                                    ? $coupon['value']
-                                    : ($subtotal * $coupon['value'] / 100);
+                            if ($coupon) {
+                                if ($coupon['discount_type'] === 'fixed') {
+                                    $discount = $coupon['discount_value'];
+                                } elseif ($coupon['discount_type'] === 'percent') {
+                                    $discount = ($subtotal * $coupon['discount_value']) / 100;
+                                }
                             }
 
                             $total = max($subtotal - $discount + $shipping, 0);

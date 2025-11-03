@@ -126,7 +126,6 @@
                             ✅ Coupon "<strong>{{ session('coupon.code') }}</strong>" applied successfully!
                             <form action="{{ route('coupon.remove') }}" method="POST" class="inline">
                                 @csrf
-                                @method('DELETE')
                                 <button type="submit" class="text-red-600 font-medium ml-2 hover:underline">
                                     Remove
                                 </button>
@@ -150,14 +149,16 @@
                     @php
                         $subtotal = $cart->subtotal;
                         $discount = 0;
-                        if(session('coupon')) {
-                            $coupon = session('coupon');
+                        $coupon = session('coupon');
+
+                        if($coupon) {
                             if($coupon['discount_type'] === 'fixed') {
-                                $discount = $coupon['value'];
+                                $discount = $coupon['discount_value'];
                             } elseif($coupon['discount_type'] === 'percent') {
-                                $discount = ($subtotal * $coupon['value']) / 100;
+                                $discount = ($subtotal * $coupon['discount_value']) / 100;
                             }
                         }
+
                         $shipping = 50;
                         $total = max($subtotal - $discount + $shipping, 0);
                     @endphp
@@ -168,10 +169,10 @@
                     </div>
 
                     @if($discount > 0)
-                    <div class="flex justify-between mb-2 text-green-700 font-medium">
-                        <span>Discount ({{ session('coupon.code') }}):</span>
-                        <span>-₹{{ number_format($discount, 2) }}</span>
-                    </div>
+                        <div class="flex justify-between mb-2 text-green-700 font-medium">
+                            <span>Discount ({{ $coupon['code'] ?? '' }}):</span>
+                            <span>-₹{{ number_format($discount, 2) }}</span>
+                        </div>
                     @endif
 
                     <div class="flex justify-between mb-2 text-gray-700">
