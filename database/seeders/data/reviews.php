@@ -7,7 +7,7 @@ return [
         'rating' => 5,
         'comment' => 'Fantastic wireless headphones with deep bass and comfortable fit. Battery lasts all day!',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1518444028784-07e736b3ccf0'
+            'https://images.unsplash.com/photo-1641576039236-4c9b4cf846b0?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fEZhbnRhc3RpYyUyMHdpcmVsZXNzJTIwaGVhZHBob25lfGVufDB8fDB8fHww&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -17,7 +17,7 @@ return [
         'rating' => 4,
         'comment' => 'Excellent smartwatch for fitness tracking and notifications. Display is sharp and bright.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1598970434795-0c54fe7c0648'
+            'https://plus.unsplash.com/premium_photo-1712761997182-45455a50d8c4?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8RXhjZWxsZW50JTIwc21hcnR3YXRjaCUyMGZvciUyMGZpdG5lc3MlMjB0cmFja2luZ3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -27,7 +27,7 @@ return [
         'rating' => 5,
         'comment' => 'This smart TV has great picture quality and smooth streaming performance. Worth every penny!',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04'
+            'https://images.unsplash.com/photo-1647938051859-4f31f3bbb9cb?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fFRoaXMlMjBzbWFydCUyMFRWJTIwaGFzJTIwZ3JlYXQlMjBwaWN0dXJlfGVufDB8fDB8fHww&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -37,7 +37,7 @@ return [
         'rating' => 5,
         'comment' => 'Powerful gaming laptop with excellent cooling and display. Handles AAA titles easily.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1593642634367-d91a135587b5'
+            'https://plus.unsplash.com/premium_photo-1682785300986-c3cdb1ac784b?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8UG93ZXJmdWwlMjBnYW1pbmclMjBsYXB0b3AlMjB3aXRoJTIwZXhjZWxsZW50fGVufDB8fDB8fHww&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -47,7 +47,7 @@ return [
         'rating' => 4,
         'comment' => 'Comfortable ergonomic chair, ideal for long office hours. Build quality is great.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1585511299907-1e3c620d5d8f'
+            'https://plus.unsplash.com/premium_photo-1673282248916-31daec36675e?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8Q29tZm9ydGFibGUlMjBlcmdvbm9taWMlMjBjaGFpcnxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -57,7 +57,7 @@ return [
         'rating' => 5,
         'comment' => 'Compact Bluetooth speaker with crystal clear sound and punchy bass. Perfect for travel!',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1505740420928-5e560c06d30e'
+            'https://images.unsplash.com/photo-1544765293-9bc7486a8dfa?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fENvbXBhY3QlMjBCbHVldG9vdGglMjBzcGVha2VyJTIwd2l0aCUyMGNyeXN0YWx8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -74,7 +74,7 @@ return [
         'rating' => 5,
         'comment' => 'Stylish running shoes with great grip and comfort. Ideal for daily jogging.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1528701800489-20be2b0a3e54'
+            'https://images.unsplash.com/photo-1631774640512-84a5f6dabf86?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fFN0eWxpc2glMjBydW5uaW5nJTIwc2hvZXN8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -91,7 +91,7 @@ return [
         'rating' => 5,
         'comment' => 'Excellent smartphone with smooth performance and an amazing camera setup!',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9'
+            'https://images.unsplash.com/photo-1551789028-47bd9d06b118?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8RXhjZWxsZW50JTIwc21hcnRwaG9uZSUyMHdpdGglMjBzbW9vdGh8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -101,7 +101,7 @@ return [
         'rating' => 4,
         'comment' => 'Stylish sunglasses with UV protection. Fits well and looks premium.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1519741497674-611481863552'
+            'https://images.unsplash.com/photo-1723179754179-61a91b48d702?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NHx8U3R5bGlzaCUyMHN1bmdsYXNzZXMlMjB3aXRoJTIwVVYlMjBwcm90ZWN0aW9ufGVufDB8fDB8fHww&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],
@@ -160,7 +160,7 @@ return [
         'rating' => 5,
         'comment' => 'Elegant wristwatch with classic look. Works flawlessly and feels premium.',
         'images' => json_encode([
-            'https://images.unsplash.com/photo-1523275335684-37898b6baf30'
+            'https://images.unsplash.com/photo-1689372828184-fff989d6a553?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8OHx8RWxlZ2FudCUyMHdyaXN0d2F0Y2glMjB3aXRoJTIwY2xhc3NpY3xlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&q=60&w=600'
         ]),
         'is_approved' => true,
     ],

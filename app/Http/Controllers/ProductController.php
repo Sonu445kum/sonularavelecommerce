@@ -73,17 +73,46 @@ class ProductController extends Controller
 
     /**
      * ===========================================================
-     * 🎯 Show single product details + related products
+     * 🎯 Show single product details + related products + gallery
      * ===========================================================
      */
     public function show($slug)
     {
-        // ✅ Get main product with reviews and their users
-        $product = Product::with(['category', 'reviews.user'])
-            ->where('slug', $slug)
-            ->firstOrFail();
+        // ✅ Get product with all relations
+        $product = Product::with([
+            'category',
+            'reviews.user',
+            'images' // Include product images relation
+        ])->where('slug', $slug)->firstOrFail();
 
-        // 🔁 Related Products (Same category)
+        // 🖼️ Collect all images (featured + gallery)
+        $allImages = [];
+
+        // Add main featured image (if exists)
+        if (!empty($product->featured_image)) {
+            $allImages[] = $product->featured_image;
+        }
+
+        // Add from featured_images (if JSON array exists)
+        if (!empty($product->featured_images)) {
+            $featuredArray = is_array($product->featured_images)
+                ? $product->featured_images
+                : json_decode($product->featured_images, true);
+
+            if (is_array($featuredArray)) {
+                $allImages = array_merge($allImages, $featuredArray);
+            }
+        }
+
+        // Add from images relation (if exists)
+        if ($product->images && $product->images->count() > 0) {
+            $allImages = array_merge($allImages, $product->images->pluck('url')->toArray());
+        }
+
+        // Remove duplicates
+        $allImages = array_unique($allImages);
+
+        // 🔁 Related Products (same category)
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->where('is_active', true)
@@ -91,7 +120,8 @@ class ProductController extends Controller
             ->take(4)
             ->get();
 
-        return view('products.show', compact('product', 'relatedProducts'));
+        // ✅ Pass product + related + images array
+        return view('products.show', compact('product', 'relatedProducts', 'allImages'));
     }
 
     /**
@@ -100,17 +130,20 @@ class ProductController extends Controller
      * ===========================================================
      */
     public function search(Request $request)
-{
-    $query = $request->input('query');
+    {
+        $query = $request->input('query');
 
-    $products = Product::where('title', 'LIKE', "%{$query}%")
-        ->orWhere('description', 'LIKE', "%{$query}%")
+        $products = Product::where(function ($q) use ($query) {
+            $q->where('title', 'LIKE', "%{$query}%")
+              ->orWhere('description', 'LIKE', "%{$query}%");
+        })
         ->where('is_active', true)
         ->paginate(12);
 
-    $categories = Category::where('is_active', true)->orderBy('name')->get();
+        $categories = Category::where('is_active', true)
+                              ->orderBy('name')
+                              ->get();
 
-    return view('products.search', compact('products', 'query', 'categories'));
-}
-
+        return view('products.search', compact('products', 'query', 'categories'));
+    }
 }

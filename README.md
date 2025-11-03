@@ -43,14 +43,6 @@ Built with modern Laravel best practices, the project emphasizes clean architect
 
 ---
 
-## Project Overview
-
-This project is an end-to-end eCommerce application built using Laravel. It supports user registration and verification, admin/user roles, product & category management, product variants and multiple images, shopping cart & wishlist, checkout, order lifecycle management, coupons, reviews, emails, and an admin dashboard with sales statistics.
-
-The README documents features, how they work, implementation notes, and instructions to run and extend the project.
-
----
-
 ## Features & Explanations
 
 ### 1. Authentication & User Management

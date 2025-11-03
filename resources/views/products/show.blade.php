@@ -1,6 +1,6 @@
 {{-- ==========================================================
     Product Details Page – show.blade.php
-    Displays a single product with related products & reviews
+    Displays a single product with all gallery images, reviews & related products
 ========================================================== --}}
 @extends('layouts.app')
 
@@ -23,24 +23,33 @@
     </nav>
 
     {{-- ✅ Product Details Section --}}
-    <div class="row g-5">
+    <div class="row g-5 align-items-start">
 
-        {{-- 🖼️ Product Image --}}
+        {{-- 🖼️ Product Images Gallery --}}
         <div class="col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <img src="{{ $product->featured_image ? asset($product->featured_image) : asset('images/no-image.png') }}" 
-                     alt="{{ $product->title }}" class="img-fluid rounded-4 w-100">
-            </div>
-
-            {{-- ✅ Additional Images (Gallery) --}}
-            @if ($product->images && $product->images->count() > 0)
-                <div class="d-flex flex-wrap gap-2 mt-3">
-                    @foreach ($product->images as $img)
-                        <img src="{{ asset($img->url) }}" 
-                             class="img-thumbnail rounded-3" width="90" height="90" alt="Gallery Image">
-                    @endforeach
+            <div class="card border-0 shadow-sm rounded-4 p-3">
+                {{-- 🖼️ Main Image Preview --}}
+                <div class="text-center">
+                    <img id="mainImage" 
+                         src="{{ isset($allImages[0]) ? asset($allImages[0]) : asset('images/no-image.png') }}" 
+                         class="img-fluid rounded-4" 
+                         style="max-height: 450px; object-fit: contain;" 
+                         alt="{{ $product->title }}">
                 </div>
-            @endif
+
+                {{-- 🔁 Thumbnail Gallery --}}
+                @if (!empty($allImages))
+                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
+                        @foreach ($allImages as $img)
+                            <img src="{{ asset($img) }}" 
+                                 onclick="changeMainImage('{{ asset($img) }}')" 
+                                 class="img-thumbnail rounded-3 gallery-thumb" 
+                                 style="width: 90px; height: 90px; cursor: pointer; object-fit: cover;"
+                                 alt="Gallery Image">
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
 
         {{-- 🧾 Product Info --}}
@@ -214,11 +223,11 @@
     @endif
 
     {{-- 🛍️ Related Products --}}
-    @if (isset($related) && $related->count() > 0)
+    @if (isset($relatedProducts) && $relatedProducts->count() > 0)
         <div class="mt-5">
             <h4 class="fw-bold mb-4">Related Products</h4>
             <div class="row g-4">
-                @foreach ($related as $r)
+                @foreach ($relatedProducts as $r)
                     <div class="col-6 col-md-3">
                         <div class="card border-0 shadow-sm rounded-4 h-100">
                             <img src="{{ $r->featured_image ? asset($r->featured_image) : asset('images/no-image.png') }}"
@@ -228,7 +237,7 @@
                                 <p class="text-primary fw-bold mb-1">
                                     ₹{{ number_format($r->discounted_price ?? $r->price) }}
                                 </p>
-                                <a href="{{ route('product.show', $r->slug) }}" 
+                                <a href="{{ route('products.show', $r->slug) }}" 
                                    class="btn btn-sm btn-outline-primary w-100">View</a>
                             </div>
                         </div>
@@ -239,4 +248,12 @@
     @endif
 
 </div>
+
+{{-- 📸 Thumbnail click JS --}}
+<script>
+    function changeMainImage(src) {
+        document.getElementById('mainImage').src = src;
+    }
+</script>
+
 @endsection

@@ -21,7 +21,8 @@ class Product extends Model
         'title',
         'slug',
         'description',
-        'featured_image',      // ✅ Added featured image field
+        'featured_image',      // Single main product image
+        'featured_images',     // Multiple gallery images
         'price',
         'discounted_price',
         'sku',
@@ -38,9 +39,10 @@ class Product extends Model
      * Converts database columns to native PHP types automatically.
      */
     protected $casts = [
+        'featured_images' => 'array',  // Automatically decode JSON to PHP array
+        'meta' => 'array',             // Decode meta info JSON
         'is_active' => 'boolean',
         'is_featured' => 'boolean',
-        'meta' => 'array',
         'price' => 'decimal:2',
         'discounted_price' => 'decimal:2',
     ];
@@ -51,37 +53,37 @@ class Product extends Model
      * ----------------------------------------
      */
 
-    // Each product belongs to one category.
+    // Each product belongs to one category
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
     }
 
-    // One product can have multiple images.
+    // One product can have multiple images
     public function images()
     {
         return $this->hasMany(ProductImage::class);
     }
 
-    // One product can have multiple variants (e.g., sizes, colors).
+    // One product can have multiple variants (e.g., sizes, colors)
     public function variants()
     {
         return $this->hasMany(ProductVariant::class);
     }
 
-    // One product can have multiple reviews from different users.
+    // One product can have multiple reviews from different users
     public function reviews()
     {
         return $this->hasMany(Review::class);
     }
 
-    // Each product can appear in multiple cart items.
+    // Each product can appear in multiple cart items
     public function cartItems()
     {
         return $this->hasMany(CartItem::class);
     }
 
-    // Each product can appear in multiple order items.
+    // Each product can appear in multiple order items
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
@@ -102,15 +104,28 @@ class Product extends Model
     // Accessor: Get the full URL of the featured image
     public function getFeaturedImageUrlAttribute()
     {
-        // If you are storing URLs directly (like from picsum or Cloudinary)
+        // If stored as a valid URL (e.g., Unsplash, Cloudinary)
         if (filter_var($this->featured_image, FILTER_VALIDATE_URL)) {
             return $this->featured_image;
         }
 
-        // Otherwise, return from local storage path (e.g., storage/products/)
-        return $this->featured_image 
+        // Otherwise, return from local storage (e.g., storage/products/)
+        return $this->featured_image
             ? asset('storage/' . $this->featured_image)
             : asset('images/default-product.jpg'); // fallback image
+    }
+
+    // Accessor: Get all featured gallery images with full URLs (safe to use in frontend)
+    public function getFeaturedGalleryUrlsAttribute()
+    {
+        if (is_array($this->featured_images)) {
+            return array_map(function ($img) {
+                return filter_var($img, FILTER_VALIDATE_URL)
+                    ? $img
+                    : asset('storage/' . $img);
+            }, $this->featured_images);
+        }
+        return [];
     }
 
     // Helper: Get the average rating of the product
@@ -125,7 +140,7 @@ class Product extends Model
         return $this->stock > 0;
     }
 
-    // Helper: Return product short description (for UI previews)
+    // Helper: Return short description (for UI previews)
     public function shortDescription($limit = 100)
     {
         return str()->limit(strip_tags($this->description), $limit);
