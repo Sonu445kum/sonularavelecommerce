@@ -12,90 +12,39 @@
         <h1 class="fw-bold text-dark">
             <i class="bi bi-speedometer2 me-2 text-primary"></i> Admin Dashboard
         </h1>
-        <span class="text-muted">Last Updated: {{ now()->format('d M, Y - h:i A') }}</span>
+        <span class="text-muted small fw-semibold">Last Updated: {{ now()->format('d M, Y - h:i A') }}</span>
     </div>
 
     {{-- ============================
          SUMMARY CARDS
     ============================= --}}
-    <div class="row g-3">
+    <div class="row g-4">
+        {{-- Common card structure --}}
+        @php
+            $cards = [
+                ['icon' => 'bi-box-seam', 'title' => 'Total Products', 'value' => $totalProducts ?? 0, 'color' => 'linear-gradient(135deg, #007bff, #00bfff)'],
+                ['icon' => 'bi-bag-check', 'title' => 'Total Orders', 'value' => $totalOrders ?? 0, 'color' => 'linear-gradient(135deg, #28a745, #6fdc8c)'],
+                ['icon' => 'bi-tags', 'title' => 'Total Categories', 'value' => $totalCategories ?? 0, 'color' => 'linear-gradient(135deg, #ffc107, #ffdd57)'],
+                ['icon' => 'bi-people', 'title' => 'Total Users', 'value' => $totalUsers ?? 0, 'color' => 'linear-gradient(135deg, #dc3545, #f87171)'],
+                ['icon' => 'bi-currency-rupee', 'title' => 'Total Revenue', 'value' => '₹' . number_format($totalRevenue ?? 0, 2), 'color' => 'linear-gradient(135deg, #17a2b8, #63e6be)'],
+                ['icon' => 'bi-wallet2', 'title' => 'Pending Payments', 'value' => $pendingPayments ?? 0, 'color' => 'linear-gradient(135deg, #6c757d, #adb5bd)'],
+                ['icon' => 'bi-heart', 'title' => 'Wishlist Items', 'value' => $wishlistCount ?? 0, 'color' => 'linear-gradient(135deg, #20c997, #48dbfb)'],
+            ];
+        @endphp
 
-        {{-- Products --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #007bff, #00bfff);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-box-seam fs-2 mb-2"></i>
-                    <h6>Total Products</h6>
-                    <h3 class="fw-bold">{{ $totalProducts ?? 0 }}</h3>
+        @foreach($cards as $card)
+            <div class="col-md-3 col-sm-6">
+                <div class="stat-card" style="background: {{ $card['color'] }};">
+                    <div class="stat-icon">
+                        <i class="bi {{ $card['icon'] }}"></i>
+                    </div>
+                    <div class="stat-details">
+                        <h6>{{ $card['title'] }}</h6>
+                        <h3 class="fw-bold">{{ $card['value'] }}</h3>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        {{-- Orders --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #28a745, #6fdc8c);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-bag-check fs-2 mb-2"></i>
-                    <h6>Total Orders</h6>
-                    <h3 class="fw-bold">{{ $totalOrders ?? 0 }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- Categories --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #ffc107, #ffdd57);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-tags fs-2 mb-2"></i>
-                    <h6>Total Categories</h6>
-                    <h3 class="fw-bold">{{ $totalCategories ?? 0 }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- Users --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #dc3545, #f87171);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-people fs-2 mb-2"></i>
-                    <h6>Total Users</h6>
-                    <h3 class="fw-bold">{{ $totalUsers ?? 0 }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- Revenue --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #17a2b8, #63e6be);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-currency-rupee fs-2 mb-2"></i>
-                    <h6>Total Revenue</h6>
-                    <h3 class="fw-bold">₹{{ number_format($totalRevenue ?? 0, 2) }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- Pending Payments --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #6c757d, #adb5bd);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-wallet2 fs-2 mb-2"></i>
-                    <h6>Pending Payments</h6>
-                    <h3 class="fw-bold">{{ $pendingPayments ?? 0 }}</h3>
-                </div>
-            </div>
-        </div>
-
-        {{-- Wishlist --}}
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 bg-gradient text-white" style="background: linear-gradient(135deg, #20c997, #48dbfb);">
-                <div class="card-body text-center py-4">
-                    <i class="bi bi-heart fs-2 mb-2"></i>
-                    <h6>Wishlist Items</h6>
-                    <h3 class="fw-bold">{{ $wishlistCount ?? 0 }}</h3>
-                </div>
-            </div>
-        </div>
+        @endforeach
     </div>
 
     {{-- ============================
@@ -108,7 +57,7 @@
         <div class="card shadow-sm rounded-4">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-primary">
+                    <thead class="table-primary text-dark">
                         <tr>
                             <th>#</th>
                             <th>User</th>
@@ -151,7 +100,7 @@
         <div class="card shadow-sm rounded-4">
             <div class="card-body p-0">
                 <table class="table table-striped align-middle mb-0">
-                    <thead class="table-success">
+                    <thead class="table-success text-dark">
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
@@ -188,7 +137,7 @@
         <div class="card shadow-sm rounded-4">
             <div class="card-body p-0">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-info">
+                    <thead class="table-info text-dark">
                         <tr>
                             <th>ID</th>
                             <th>User</th>
@@ -223,16 +172,45 @@
 </div>
 
 {{-- ============================
-     SMALL CSS TWEAKS
+     CUSTOM STYLES
 ============================= --}}
 <style>
-.card:hover {
-    transform: translateY(-4px);
-    transition: 0.3s ease;
-}
-.table thead th {
-    font-weight: 600;
-}
+    .stat-card {
+        border-radius: 20px;
+        padding: 25px 20px;
+        color: #222;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+        background-size: 200% 200%;
+        animation: gradientMove 5s ease infinite;
+    }
+    @keyframes gradientMove {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .stat-card:hover {
+        transform: translateY(-6px) scale(1.02);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    }
+    .stat-icon i {
+        font-size: 2.4rem;
+        color: rgba(0, 0, 0, 0.8);
+        margin-bottom: 8px;
+    }
+    .stat-details h6 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #222;
+    }
+    .stat-details h3 {
+        font-size: 1.8rem;
+        margin: 0;
+        color: #111;
+    }
+    .table thead th {
+        font-weight: 600;
+    }
 </style>
 @endsection
- 
