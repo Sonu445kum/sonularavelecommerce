@@ -46,10 +46,7 @@ class CheckoutController extends Controller
                 return redirect()->route('cart.index')->withErrors('Your cart is empty.');
             }
 
-            // Get all product IDs from session cart
             $productIds = collect($sessionCart)->pluck('product_id')->toArray();
-
-            // Eager load products with images
             $products = Product::with('images')->whereIn('id', $productIds)->get()->keyBy('id');
 
             $items = [];
@@ -93,11 +90,10 @@ class CheckoutController extends Controller
             return back()->withErrors('Invalid or expired coupon.');
         }
 
-        // ✅ Store coupon data in session with correct keys
         session()->put('coupon', [
             'id' => $coupon->id,
             'code' => $coupon->code,
-            'type' => $coupon->type ?? 'fixed',  // default fallback
+            'type' => $coupon->type ?? 'fixed',
             'value' => $coupon->value ?? 0,
         ]);
 
@@ -160,11 +156,13 @@ class CheckoutController extends Controller
             $subtotal = $items->sum(fn($it) => $it->price * $it->quantity);
         }
 
-        // 💰 Coupon & total calculation (safe version)
+        // 💰 Coupon & total calculation
         $coupon = session('coupon', []);
         $discount = 0;
+        $couponCode = null;
 
         if (!empty($coupon) && isset($coupon['type']) && isset($coupon['value'])) {
+            $couponCode = $coupon['code'] ?? null;
             $type = $coupon['type'];
             $value = $coupon['value'];
 
@@ -186,10 +184,11 @@ class CheckoutController extends Controller
             try {
                 $order = Order::create([
                     'user_id' => $user->id ?? null,
-                    'total_amount' => $totalAmount,
                     'subtotal' => $subtotal,
                     'discount' => $discount,
+                    'coupon_code' => $couponCode,
                     'shipping' => $shipping,
+                    'total' => $totalAmount,
                     'address' => $req->address,
                     'payment_method' => $req->payment_method,
                     'status' => 'Pending',
@@ -210,11 +209,10 @@ class CheckoutController extends Controller
                     ]);
                 }
 
-                // ✅ Stripe Configuration
                 $stripeSecret = config('services.stripe.secret') ?? env('STRIPE_SECRET');
                 if (empty($stripeSecret)) {
                     DB::rollBack();
-                    return redirect()->route('checkout.index')->withErrors('Stripe not configured in .env file.');
+                    return redirect()->route('checkout.index')->withErrors('Stripe not configured.');
                 }
 
                 Stripe::setApiKey($stripeSecret);
@@ -248,14 +246,15 @@ class CheckoutController extends Controller
         try {
             $order = Order::create([
                 'user_id' => $user->id ?? null,
-                'total_amount' => $totalAmount,
                 'subtotal' => $subtotal,
                 'discount' => $discount,
+                'coupon_code' => $couponCode,
                 'shipping' => $shipping,
+                'total' => $totalAmount,
                 'address' => $req->address,
                 'payment_method' => 'cod',
                 'status' => 'Processing',
-                'payment_status' => 'pending',
+                'payment_status' => 'Pending',
             ]);
 
             foreach ($items as $item) {
@@ -292,7 +291,7 @@ class CheckoutController extends Controller
     }
 
     /**
-     * ✅ Payment success page
+     * ✅ Payment success page (with coupon reflection)
      */
     public function success(Request $request)
     {
@@ -316,7 +315,9 @@ class CheckoutController extends Controller
             }
         }
 
-        return view('checkout.success', compact('order'));
+        $coupon = $order->coupon_code ?? null;
+
+        return view('checkout.success', compact('order', 'coupon'));
     }
 
     /**
