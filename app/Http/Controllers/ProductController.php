@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\Review;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -15,9 +18,7 @@ class ProductController extends Controller
      */
     public function index(Request $req)
     {
-        // ✅ Base Query - Active products + Category relation
-        $query = Product::with('category')
-                        ->where('is_active', true);
+        $query = Product::with('category')->where('is_active', true);
 
         // 🔍 Search filter
         if ($req->filled('q')) {
@@ -60,10 +61,8 @@ class ProductController extends Controller
             $query->latest();
         }
 
-        // 🧾 Paginate + preserve filters
         $products = $query->paginate(12)->withQueryString();
 
-        // 📂 Active Categories for Sidebar Filters
         $categories = Category::where('is_active', true)
                               ->orderBy('name')
                               ->get();
@@ -73,27 +72,24 @@ class ProductController extends Controller
 
     /**
      * ===========================================================
-     * 🎯 Show single product details + related products + gallery
+     * 🎯 Show single product details + related products + reviews
      * ===========================================================
      */
     public function show($slug)
     {
-        // ✅ Get product with all relations
         $product = Product::with([
             'category',
             'reviews.user',
-            'images' // Include product images relation
+            'images'
         ])->where('slug', $slug)->firstOrFail();
 
         // 🖼️ Collect all images (featured + gallery)
         $allImages = [];
 
-        // Add main featured image (if exists)
         if (!empty($product->featured_image)) {
             $allImages[] = $product->featured_image;
         }
 
-        // Add from featured_images (if JSON array exists)
         if (!empty($product->featured_images)) {
             $featuredArray = is_array($product->featured_images)
                 ? $product->featured_images
@@ -104,15 +100,13 @@ class ProductController extends Controller
             }
         }
 
-        // Add from images relation (if exists)
         if ($product->images && $product->images->count() > 0) {
             $allImages = array_merge($allImages, $product->images->pluck('url')->toArray());
         }
 
-        // Remove duplicates
         $allImages = array_unique($allImages);
 
-        // 🔁 Related Products (same category)
+        // 🔁 Related Products
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->where('is_active', true)
@@ -120,8 +114,68 @@ class ProductController extends Controller
             ->take(4)
             ->get();
 
-        // ✅ Pass product + related + images array
-        return view('products.show', compact('product', 'relatedProducts', 'allImages'));
+        // 🧩 Reviews (Approved only)
+        $reviews = Review::with('user')
+            ->where('product_id', $product->id)
+            ->where('is_approved', true)
+            ->latest()
+            ->get();
+
+        return view('products.show', compact('product', 'relatedProducts', 'allImages', 'reviews'));
+    }
+
+    /**
+     * ===========================================================
+     * 💬 Store Review / Comment / Rating / Feedback
+     * ===========================================================
+     */
+    public function storeReview(Request $req, $productId)
+    {
+        $req->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+            'images.*' => 'nullable|image|max:5120',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime|max:20480', // 20MB max
+        ]);
+
+        $product = Product::findOrFail($productId);
+
+        // ✅ Check if user already reviewed this product
+        $existing = Review::where('product_id', $productId)
+                          ->where('user_id', Auth::id())
+                          ->first();
+
+        if ($existing) {
+            return back()->with('error', 'You have already submitted a review for this product.');
+        }
+
+        // 🧩 Create review record
+        $review = new Review();
+        $review->user_id = Auth::id();
+        $review->product_id = $productId;
+        $review->rating = $req->rating;
+        $review->comment = $req->comment ?? null;
+        $review->is_approved = false; // Admin will approve
+        $review->save();
+
+        // 🖼️ Handle images upload
+        if ($req->hasFile('images')) {
+            $paths = [];
+            foreach ($req->file('images') as $file) {
+                $paths[] = $file->store('reviews', 'public');
+            }
+            $review->images = $paths;
+            $review->save();
+        }
+
+        // 🎥 Handle video upload (WebRTC)
+        if ($req->hasFile('video')) {
+            $videoPath = $req->file('video')->store('review_videos', 'public');
+            $review->video_path = $videoPath;
+            $review->save();
+        }
+
+        return back()->with('success', 'Your review has been submitted successfully and is awaiting approval.');
     }
 
     /**

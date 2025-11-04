@@ -12,7 +12,7 @@
 
         <div class="mb-3">
             <label>Name:</label>
-            <input type="text" name="name" class="form-control" value="{{ $product->name }}">
+            <input type="text" name="name" class="form-control" value="{{ $product->title }}">
         </div>
 
         <div class="mb-3">
