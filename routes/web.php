@@ -47,6 +47,7 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // 📄 Static Pages
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/contact', [PageController::class, 'contact'])->name('contact');
+Route::post('/contact', [PageController::class, 'sendContact'])->name('contact.send');
 
 // 🛍️ Products
 Route::get('/products', [ProductController::class, 'index'])->name('products.index');

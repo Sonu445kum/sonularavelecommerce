@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\OrderPlacedMail;
+use App\Mail\OrderConfirmation;
 use App\Mail\AdminNewOrderMail;
 use App\Models\Cart;
 use App\Models\Order;
@@ -122,6 +122,10 @@ class CheckoutController extends Controller
         $user = Auth::user();
         $isGuest = !$user;
 
+        // Customer info (safe for guest)
+        $customerName = $user->name ?? $req->input('name');
+        $customerEmail = $user->email ?? $req->input('email');
+
         // 🛒 Get Cart
         if ($isGuest) {
             $sessionCart = session()->get('cart', []);
@@ -211,9 +215,9 @@ class CheckoutController extends Controller
                     ]);
                 }
 
-                // 🔔 Notifications
+                // 🔔 Notifications (user + admins)
                 Notification::create([
-                    'user_id' => $user->id,
+                    'user_id' => $user->id ?? null,
                     'title' => 'Order Placed Successfully',
                     'message' => "Your order #{$order->id} has been placed successfully. Total ₹" . number_format($order->total, 2),
                     'type' => 'order',
@@ -226,22 +230,23 @@ class CheckoutController extends Controller
                     Notification::create([
                         'user_id' => $admin->id,
                         'title' => '🛒 New Order Received',
-                        'message' => "New order #{$order->id} from {$user->name}. Total ₹" . number_format($order->total, 2),
+                        'message' => "New order #{$order->id} from {$customerName} ({$customerEmail}). Total ₹" . number_format($order->total, 2),
                         'type' => 'admin_order',
                         'is_read' => false,
                     ]);
                 }
 
-                // 📧 Send Emails
+                // 📧 Send Emails (use OrderConfirmation for user; AdminNewOrderMail for admins)
                 try {
-                    \Log::info("📧 Sending OrderPlacedMail to user: {$user->email}");
-                    Mail::to($user->email)->queue(new OrderPlacedMail($order));
+                    \Log::info("📧 Sending OrderConfirmation to user: {$customerEmail}");
+                    Mail::to($customerEmail)->send(new OrderConfirmation($order));
 
                     foreach ($admins as $admin) {
-                        Mail::to($admin->email)->queue(new AdminNewOrderMail($order, $user));
+                        Mail::to($admin->email)->send(new AdminNewOrderMail($order, $user ?? null));
                     }
                 } catch (Exception $e) {
                     \Log::error('❌ Email sending failed: ' . $e->getMessage());
+                    // don't fail the transaction for email failure; continue
                 }
 
                 // 💳 Stripe Payment Intent
@@ -251,7 +256,7 @@ class CheckoutController extends Controller
                     'currency' => 'inr',
                     'metadata' => [
                         'order_id' => $order->id,
-                        'user_id' => $user->id,
+                        'user_id' => $user->id ?? null,
                     ],
                 ]);
 
@@ -299,7 +304,7 @@ class CheckoutController extends Controller
             }
 
             Notification::create([
-                'user_id' => $user->id,
+                'user_id' => $user->id ?? null,
                 'title' => 'Order Placed Successfully (COD)',
                 'message' => "Your order #{$order->id} placed successfully. Total ₹" . number_format($order->total, 2),
                 'type' => 'order',
@@ -311,7 +316,7 @@ class CheckoutController extends Controller
                 Notification::create([
                     'user_id' => $admin->id,
                     'title' => 'New COD Order Received',
-                    'message' => "COD Order #{$order->id} from {$user->name}. Total ₹" . number_format($order->total, 2),
+                    'message' => "COD Order #{$order->id} from {$customerName} ({$customerEmail}). Total ₹" . number_format($order->total, 2),
                     'type' => 'admin_order',
                     'is_read' => false,
                 ]);
@@ -319,20 +324,22 @@ class CheckoutController extends Controller
 
             // 📧 Emails
             try {
-                \Log::info("📧 Sending COD OrderPlacedMail to user: {$user->email}");
-                Mail::to($user->email)->queue(new OrderPlacedMail($order));
+                \Log::info("📧 Sending OrderConfirmation (COD) to user: {$customerEmail}");
+                Mail::to($customerEmail)->send(new OrderConfirmation($order));
 
                 foreach ($admins as $admin) {
-                    Mail::to($admin->email)->queue(new AdminNewOrderMail($order, $user));
+                    Mail::to($admin->email)->send(new AdminNewOrderMail($order, $user ?? null));
                 }
             } catch (Exception $e) {
                 \Log::error('❌ Email sending failed: ' . $e->getMessage());
             }
 
             if (!$isGuest) {
+                // cleanup cart for logged in user
                 $cart->items()->delete();
                 $cart->delete();
             } else {
+                // cleanup session cart for guest
                 session()->forget('cart');
             }
 

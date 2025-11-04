@@ -45,13 +45,13 @@
                     <i class="fas fa-box"></i> My Orders
                 </a>
 
-                <!-- {{-- 🔔 Notifications Bell --}}
+                {{-- 🔔 Notifications Bell --}}
                 <div class="relative">
                     <a href="{{ route('notifications.index') }}" class="text-gray-800 hover:text-blue-600 relative">
                         <i class="fas fa-bell text-xl"></i>
                         <span id="notification-badge" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1 hidden">0</span>
                     </a>
-                </div> -->
+                </div>
 
                 {{-- 🛒 Cart (Visible for All Logged Users) --}}
                 <a href="{{ route('cart.index') }}" class="relative text-gray-800 hover:text-blue-600">
