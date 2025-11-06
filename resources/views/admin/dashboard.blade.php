@@ -54,7 +54,8 @@
                 ['icon' => 'bi-tags', 'title' => 'Total Categories', 'value' => $totalCategories ?? 0, 'color' => 'linear-gradient(135deg, #ffc107, #ffdd57)'],
                 ['icon' => 'bi-people', 'title' => 'Total Users', 'value' => $totalUsers ?? 0, 'color' => 'linear-gradient(135deg, #dc3545, #f87171)'],
                 ['icon' => 'bi-currency-rupee', 'title' => 'Total Revenue', 'value' => '₹' . number_format($totalRevenue ?? 0, 2), 'color' => 'linear-gradient(135deg, #17a2b8, #63e6be)'],
-                ['icon' => 'bi-wallet2', 'title' => 'Pending Payments', 'value' => $pendingPayments ?? 0, 'color' => 'linear-gradient(135deg, #6c757d, #adb5bd)'],
+                ['icon' => 'bi-wallet2', 'title' => 'Successful Payments', 'value' => $successfulPayments ?? 0, 'color' => 'linear-gradient(135deg, #198754, #6fdc8c)'],
+
                 ['icon' => 'bi-heart', 'title' => 'Wishlist Items', 'value' => $wishlistCount ?? 0, 'color' => 'linear-gradient(135deg, #20c997, #48dbfb)'],
             ];
         @endphp

@@ -93,12 +93,13 @@ class Order extends Model
 
     // 🔹 Each order belongs to one address (shipping/billing)
     public function address()
-    {
-        return $this->belongsTo(Address::class);
-    }
+{
+    return $this->belongsTo(Address::class, 'address_id');
+}
+
 
     // 🔹 Each order has many order items
-    public function Items()
+    public function items()
 {
     return $this->hasMany(OrderItem::class);
 }

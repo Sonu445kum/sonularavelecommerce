@@ -10,10 +10,10 @@ class OrderController extends Controller
 {
     /**
      * ==========================================
-     * Display All Orders (User / Admin)
+     * Display All Orders (User / Admin) + Filter
      * ==========================================
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
 
@@ -21,19 +21,44 @@ class OrderController extends Controller
             return redirect()->route('login')->with('error', 'Please login to view your orders.');
         }
 
-        // 🔹 Admin can view all orders
-        $orders = $user->is_admin
-            ? Order::with(['user', 'items.product.images'])
-                ->latest()
-                ->paginate(20)
-            : $user->orders()
-                ->with(['items.product.images'])
-                ->latest()
-                ->paginate(20);
+        // 🔹 Base query for admin or user
+        $query = $user->is_admin
+            ? Order::with(['user', 'items.product.images', 'address'])
+            : $user->orders()->with(['items.product.images', 'address']);
 
-        // 🔹 Handle empty order list
+        // 🔍 Apply Filter Logic
+        switch ($request->filter) {
+            case 'latest':
+                $query->orderBy('created_at', 'desc');
+                break;
+
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+
+            case 'pending':
+                $query->where('status', 'Pending');
+                break;
+
+            case 'processing':
+                $query->where('status', 'Processing');
+                break;
+
+            case 'delivered':
+                $query->where('status', 'Delivered');
+                break;
+
+            default:
+                $query->orderBy('created_at', 'desc'); // Default to latest
+                break;
+        }
+
+        // 🔹 Pagination
+        $orders = $query->paginate($user->is_admin ? 20 : 10);
+
+        // 🔹 Handle empty orders
         if ($orders->isEmpty()) {
-            session()->flash('info', 'You have not placed any orders yet.');
+            session()->flash('info', 'No orders found for this filter.');
         }
 
         return view('orders.index', compact('orders'));
@@ -55,12 +80,32 @@ class OrderController extends Controller
             }
         ])->findOrFail($id);
 
-        // 🔹 Access Control
+        // 🔒 Access Control
         if (Auth::id() !== $order->user_id && !Auth::user()?->is_admin) {
             abort(403, 'Unauthorized access to order details.');
         }
 
-        // 🔹 Format Order Data (Optional - For Safety)
+        // 🔹 Ensure Address Relation (Fallback)
+        if (!$order->address && $order->address_id) {
+            $order->load('address');
+        }
+
+        // 🔹 Optional Fallback (legacy orders)
+        $order->shipping_address = $order->address
+            ? $order->address
+            : (object) [
+                'name' => $order->name,
+                'phone' => $order->phone,
+                'address_line1' => $order->address_line1 ?? $order->address ?? null,
+                'address_line2' => $order->address_line2 ?? null,
+                'city' => $order->city ?? null,
+                'state' => $order->state ?? null,
+                'postal_code' => $order->postal_code ?? $order->pincode ?? null,
+                'country' => $order->country ?? 'India',
+                'label' => 'Default',
+            ];
+
+        // 🔹 Format Data
         $order->formatted_total = number_format($order->total, 2);
         $order->item_count = $order->items->sum('quantity');
 
@@ -69,7 +114,7 @@ class OrderController extends Controller
 
     /**
      * ==========================================
-     * Cancel Order (Optional Feature)
+     * Cancel Order (User / Admin)
      * ==========================================
      */
     public function cancel($id)
@@ -80,7 +125,7 @@ class OrderController extends Controller
             abort(403, 'Unauthorized to cancel this order.');
         }
 
-        if (in_array($order->status, ['shipped', 'delivered'])) {
+        if (in_array(strtolower($order->status), ['shipped', 'delivered'])) {
             return back()->with('error', 'You cannot cancel an order that is already shipped or delivered.');
         }
 

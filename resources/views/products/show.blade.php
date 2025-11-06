@@ -106,8 +106,13 @@
                 <input type="hidden" name="product_id" value="{{ $product->id }}">
                 <div class="d-flex align-items-center gap-2 mb-3" style="max-width: 200px;">
                     <label for="quantity" class="form-label mb-0 small">Qty:</label>
-                    <input type="number" name="quantity" id="quantity" min="1"
-                           max="{{ $product->stock }}" value="1" class="form-control">
+                    <input type="number"
+                        name="quantity"
+                        id="quantity"
+                        min="1"
+                        max="{{ $product->stock }}"
+                        value="{{ session('last_selected_quantity_' . $product->id, 1) }}"
+                        class="form-control">
                 </div>
                 <button type="submit" class="btn btn-primary btn-lg px-4"
                         {{ $product->stock <= 0 ? 'disabled' : '' }}>

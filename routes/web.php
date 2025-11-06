@@ -94,12 +94,17 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-// ⭐ Product Reviews
-    Route::post('/products/{product}/review', [App\Http\Controllers\ProductController::class, 'storeReview'])
-    ->name('products.review.store')
+// // ⭐ Product Reviews
+//     Route::post('/products/{product}/review', [App\Http\Controllers\ProductController::class, 'storeReview'])
+//     ->name('products.review.store')
+//     ->middleware('auth');
+
+//     Route::post('/products/{id}/reviews', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
+
+Route::post('/products/{id}/reviews', [App\Http\Controllers\ReviewController::class, 'store'])
+    ->name('reviews.store')
     ->middleware('auth');
 
-    Route::post('/products/{id}/reviews', [App\Http\Controllers\ReviewController::class, 'store'])->name('reviews.store');
 
 
 

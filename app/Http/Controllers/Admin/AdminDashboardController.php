@@ -23,7 +23,7 @@ class AdminDashboardController extends Controller
         $totalProducts = Product::count();
         $totalCategories = Category::count();
         $totalRevenue = Order::where('status', 'completed')->sum('total_amount');
-        $pendingPayments = Payment::where('status', 'pending')->count();
+        $successfulPayments = Payment::where('status', 'success')->count();
         $wishlistCount = Wishlist::count();
 
         // 🧾 Recent Orders (latest 5)
@@ -41,7 +41,7 @@ class AdminDashboardController extends Controller
             'totalProducts',
             'totalCategories',
             'totalRevenue',
-            'pendingPayments',
+            'successfulPayments',
             'wishlistCount',
             'recentOrders',
             'recentUsers',

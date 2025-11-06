@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+<!-- @extends('layouts.admin')
 
 @section('title', 'Add Product')
 
@@ -91,7 +91,7 @@
             </div>
         </div> -->
 
-        <button type="submit" class="btn btn-success">Save Product</button>
+        <!-- <button type="submit" class="btn btn-success">Save Product</button>
         <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
@@ -116,4 +116,4 @@ document.querySelector('input[name="slug"]').addEventListener('input', function(
     this.dataset.manual = 'true';
 });
 </script>
-@endsection
+@endsection --> -->

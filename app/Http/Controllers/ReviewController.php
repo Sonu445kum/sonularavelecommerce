@@ -6,12 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Product;
 use App\Models\Review;
+use Illuminate\Support\Facades\Storage;
 
 class ReviewController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth'); // Reviews only for logged-in users
     }
 
     /**
@@ -23,13 +24,12 @@ class ReviewController extends Controller
 
         // ✅ Validate user input
         $validated = $request->validate([
-        'rating'    => 'required|integer|min:1|max:5',
-        'comment'   => 'nullable|string|max:2000',
-        'images'    => 'nullable|array',
-        'images.*'  => 'nullable|file|max:5120', // ✅ removed 'image|mimes', allows all image-like files
-        'video'     => 'nullable|file|mimetypes:video/mp4,video/webm|max:51200', // 50MB limit
-    ]);
-
+            'rating'    => 'required|integer|min:1|max:5',
+            'comment'   => 'nullable|string|max:2000',
+            'images'    => 'nullable|array',
+            'images.*'  => 'nullable|file|image|mimes:jpg,jpeg,png,webp|max:5120', // max 5MB per image
+            'video'     => 'nullable|file|mimetypes:video/mp4,video/webm|max:51200', // 50MB max
+        ]);
 
         // ✅ Handle multiple image uploads
         $imagePaths = [];
@@ -55,12 +55,17 @@ class ReviewController extends Controller
             'comment'     => $validated['comment'] ?? null,
             'images'      => $imagePaths,   // auto JSON via cast
             'video_path'  => $videoPath,
-            'is_approved' => true,
+            'is_approved' => true,          // auto-approve reviews
         ]);
 
         $review->save();
 
-        // ✅ Redirect with smooth scroll to reviews section
+        // ✅ Optional: Update product average rating
+        $product->update([
+            'average_rating' => $product->reviews()->avg('rating')
+        ]);
+
+        // ✅ Redirect back to product page with success message
         return redirect()
             ->route('products.show', $product->slug)
             ->with('success', '✅ Review submitted successfully!')

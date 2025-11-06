@@ -4,8 +4,8 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="mb-3">Manage Products</h2>
-    <a href="{{ route('admin.products.create') }}" class="btn btn-primary mb-3">Add New Product</a>
+    
+    <!-- <a href="{{ route('admin.products.create') }}" class="btn btn-primary mb-3">Add New Product</a> -->
 
     <table class="table table-bordered">
         <thead>

@@ -9,9 +9,6 @@ class Address extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     */
     protected $fillable = [
         'user_id',
         'label',
@@ -26,15 +23,12 @@ class Address extends Model
         'is_default',
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected $casts = [
         'is_default' => 'boolean',
     ];
 
     /**
-     * Get the user that owns this address.
+     * User who owns this address
      */
     public function user()
     {
@@ -42,7 +36,15 @@ class Address extends Model
     }
 
     /**
-     * Scope to get only default address.
+     * Orders linked with this address
+     */
+    public function orders()
+    {
+        return $this->hasMany(Order::class, 'address_id');
+    }
+
+    /**
+     * Scope for default address
      */
     public function scopeDefault($query)
     {
@@ -50,7 +52,7 @@ class Address extends Model
     }
 
     /**
-     * Format the full address nicely.
+     * Return full address string
      */
     public function getFullAddressAttribute(): string
     {

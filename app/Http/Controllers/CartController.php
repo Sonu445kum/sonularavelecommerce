@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use Illuminate\Support\Facades\Session;
 
 class CartController extends Controller
 {
@@ -74,6 +75,9 @@ class CartController extends Controller
         // ✅ Update subtotal
         $cart->update(['subtotal' => $cart->calculateSubtotal()]);
 
+        // ✅ Save last selected quantity in session
+        Session::put('last_selected_quantity_' . $product->id, $validated['quantity']);
+
         return redirect()->back()->with('success', '✅ Product added to cart successfully!');
     }
 
@@ -93,6 +97,9 @@ class CartController extends Controller
         $cart = $cartItem->cart;
         $cart->update(['subtotal' => $cart->calculateSubtotal()]);
 
+        // ✅ Update session quantity (for View Details page)
+        Session::put('last_selected_quantity_' . $cartItem->product_id, $validated['quantity']);
+
         return redirect()->back()->with('success', '🛍️ Cart updated successfully!');
     }
 
@@ -103,6 +110,9 @@ class CartController extends Controller
     {
         $cartItem = CartItem::findOrFail($id);
         $cart = $cartItem->cart;
+
+        // Remove quantity session too
+        Session::forget('last_selected_quantity_' . $cartItem->product_id);
 
         $cartItem->delete();
 
@@ -120,6 +130,11 @@ class CartController extends Controller
         $cart = Cart::where('user_id', Auth::id())->first();
 
         if ($cart) {
+            // Forget all session quantities
+            foreach ($cart->items as $item) {
+                Session::forget('last_selected_quantity_' . $item->product_id);
+            }
+
             $cart->items()->delete();
             $cart->update(['subtotal' => 0]);
         }
