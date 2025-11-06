@@ -81,6 +81,7 @@
 
 {{-- ===== JAVASCRIPT FOR AJAX ===== --}}
 <script>
+    // ✅ Safely Mark Notification as Read
     function markAsRead(id) {
         fetch(`/notifications/${id}/read`, {
             method: 'POST',
@@ -92,10 +93,38 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                window.location.reload();
+                // Smooth reload for better UX
+                setTimeout(() => window.location.reload(), 300);
             }
         })
         .catch(err => console.error('Error:', err));
+    }
+
+    // ✅ Prevent repeated /notifications/unread hits
+    let notificationsInterval;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Only start polling when we're on pages that actually display notifications (not admin panel, etc.)
+        if (!notificationsInterval) {
+            notificationsInterval = setInterval(fetchNotifications, 15000); // every 15 sec
+        }
+    });
+
+    function fetchNotifications() {
+        fetch('{{ route('notifications.unread') }}')
+            .then(res => res.json())
+            .then(data => {
+                const badge = document.getElementById('notification-badge');
+                if (!badge) return;
+
+                if (data.count > 0) {
+                    badge.textContent = data.count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            })
+            .catch(err => console.error('Notification Fetch Error:', err));
     }
 </script>
 @endsection

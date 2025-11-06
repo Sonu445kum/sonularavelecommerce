@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
@@ -66,7 +68,10 @@ class CategoryController extends Controller
     public function edit($id)
     {
         $category = Category::findOrFail($id);
-        $categories = Category::whereNull('parent_id')->where('id', '!=', $id)->get();
+        $categories = Category::whereNull('parent_id')
+            ->where('id', '!=', $id)
+            ->get();
+
         return view('admin.categories.edit', compact('category', 'categories'));
     }
 
@@ -106,14 +111,29 @@ class CategoryController extends Controller
     {
         $data = $req->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:categories,slug',
+            'slug' => 'nullable|string|max:255|unique:categories,slug',
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
         ]);
 
+        // ✅ Auto-generate unique slug if not provided
+        if (empty($data['slug'])) {
+            $baseSlug = Str::slug($data['name']);
+            $slug = $baseSlug;
+            $i = 1;
+
+            while (Category::where('slug', $slug)->exists()) {
+                $slug = $baseSlug . '-' . $i++;
+            }
+
+            $data['slug'] = $slug;
+        }
+
         Category::create($data);
 
-        return back()->with('success', '✅ Category created successfully!');
+        return redirect()
+            ->route('admin.categories.index')
+            ->with('success', '✅ Category created successfully!');
     }
 
     /**
@@ -126,14 +146,31 @@ class CategoryController extends Controller
     {
         $data = $req->validate([
             'name' => 'required|string|max:255',
-            'slug' => "required|string|max:255|unique:categories,slug,{$category->id}",
+            'slug' => "nullable|string|max:255|unique:categories,slug,{$category->id}",
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
         ]);
 
+        // ✅ Auto-generate slug if left blank
+        if (empty($data['slug'])) {
+            $baseSlug = Str::slug($data['name']);
+            $slug = $baseSlug;
+            $i = 1;
+
+            while (Category::where('slug', $slug)
+                ->where('id', '!=', $category->id)
+                ->exists()) {
+                $slug = $baseSlug . '-' . $i++;
+            }
+
+            $data['slug'] = $slug;
+        }
+
         $category->update($data);
 
-        return back()->with('success', '✅ Category updated successfully!');
+        return redirect()
+            ->route('admin.categories.index')
+            ->with('success', '✅ Category updated successfully!');
     }
 
     /**
@@ -144,13 +181,51 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        // Optional: delete subcategories first
-        if ($category->children()->count() > 0) {
-            $category->children()->delete();
+        try {
+            DB::transaction(function () use ($category) {
+                $this->deleteSubcategories($category);
+                $category->delete();
+            });
+
+            // Optional cache cleanup
+            cache()->forget('categories_list');
+
+            // ✅ Check if the request came via AJAX
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => '🗑️ Category deleted successfully!',
+                ]);
+            }
+
+            // ✅ Normal delete (form POST)
+            return redirect()
+                ->route('admin.categories.index')
+                ->with('success', '🗑️ Category deleted successfully!');
+
+        } catch (\Exception $e) {
+            // Handle errors for both JSON & redirect requests
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => '⚠️ Error deleting category: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return back()->with('error', '⚠️ Error deleting category: ' . $e->getMessage());
         }
+    }
 
-        $category->delete();
-
-        return back()->with('success', '🗑️ Category deleted successfully!');
+    /**
+     * ✅ Helper to delete nested subcategories
+     */
+    private function deleteSubcategories(Category $category)
+    {
+        if ($category->children()->exists()) {
+            foreach ($category->children as $child) {
+                $this->deleteSubcategories($child);
+                $child->delete();
+            }
+        }
     }
 }

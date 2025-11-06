@@ -11,8 +11,8 @@
         @include('partials.messages')
 
         <div class="mb-3">
-            <label>Name:</label>
-            <input type="text" name="name" class="form-control" value="{{ $product->title }}">
+            <label>Title:</label>
+            <input type="text" name="title" class="form-control" value="{{ $product->title }}">
         </div>
 
         <div class="mb-3">

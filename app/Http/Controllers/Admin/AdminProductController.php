@@ -7,15 +7,17 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class AdminProductController extends Controller
 {
     /**
-     * Display a listing of products for admin.
+     * 🏷️ Display all products for admin
      */
     public function adminIndex()
     {
-        $products = Product::with('category')->paginate(20);
+        $products = Product::with('category')->latest()->paginate(20);
         return view('admin.products.index', compact('products'));
     }
 
@@ -24,97 +26,174 @@ class AdminProductController extends Controller
         return $this->adminIndex();
     }
 
-    public function create() { $categories = Category::all(); return view('admin.products.create', compact('categories')); }
+    /**
+     * 🆕 Show product create form
+     */
+    public function create()
+    {
+        $categories = Category::all();
+        return view('admin.products.create', compact('categories'));
+    }
 
+    /**
+     * 💾 Store product
+     */
     public function store(Request $req)
+{
+    // Step 1️⃣ Basic validation (without forcing image fields)
+    $rules = [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|max:255|unique:products,slug',
+        'description' => 'nullable|string',
+        'category_id' => 'nullable|exists:categories,id',
+        'price' => 'required|numeric|min:0',
+        'discounted_price' => 'nullable|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'sku' => 'nullable|string|max:255',
+        'is_active' => 'nullable|boolean',
+        'is_featured' => 'nullable|boolean',
+    ];
+
+    // Step 2️⃣ Only add image validation if file uploaded
+    if ($req->hasFile('featured_image') && $req->file('featured_image')->isValid()) {
+        $rules['featured_image'] = 'image|mimes:jpg,jpeg,png,webp|max:5120';
+    }
+
+    if ($req->hasFile('images')) {
+        foreach ($req->file('images') as $img) {
+            if ($img && $img->isValid()) {
+                $rules['images.*'] = 'image|mimes:jpg,jpeg,png,webp|max:5120';
+                break; // only validate once if any valid file exists
+            }
+        }
+    }
+
+    $data = $req->validate($rules);
+
+    // 🧩 Auto-slug
+    if (empty($data['slug'])) {
+        $data['slug'] = \Illuminate\Support\Str::slug($data['title']);
+        $baseSlug = $data['slug'];
+        $i = 1;
+        while (Product::where('slug', $data['slug'])->exists()) {
+            $data['slug'] = "{$baseSlug}-{$i}";
+            $i++;
+        }
+    }
+
+    // 📸 Handle featured image
+    if ($req->hasFile('featured_image') && $req->file('featured_image')->isValid()) {
+        $data['featured_image'] = $req->file('featured_image')->store('products', 'public');
+    }
+
+    // 🖼️ Handle gallery images
+    $gallery = [];
+    if ($req->hasFile('images')) {
+        foreach ($req->file('images') as $img) {
+            if ($img && $img->isValid()) {
+                $gallery[] = $img->store('products/gallery', 'public');
+            }
+        }
+    }
+    $data['images'] = json_encode($gallery);
+
+    // ✅ Booleans
+    $data['is_active'] = $req->has('is_active');
+    $data['is_featured'] = $req->has('is_featured');
+
+    // 💾 Create Product
+    Product::create($data);
+
+    return redirect()->route('admin.products.index')->with('success', '✅ Product created successfully!');
+}
+
+
+    /**
+     * ✏️ Edit product
+     */
+    public function edit(Product $product)
+    {
+        $categories = Category::all();
+        return view('admin.products.edit', compact('product', 'categories'));
+    }
+
+    /**
+     * 🔁 Update product
+     */
+    public function update(Request $req, Product $product)
     {
         $rules = [
             'title' => 'required|string|max:255',
-            'slug' => 'nullable|string|unique:products,slug',
+            'slug' => 'nullable|string|max:255|unique:products,slug,' . $product->id,
             'description' => 'nullable|string',
             'category_id' => 'nullable|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'discounted_price' => 'nullable|numeric|min:0',
             'stock' => 'required|integer|min:0',
             'sku' => 'nullable|string|max:255',
+            'featured_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'is_active' => 'nullable|boolean',
             'is_featured' => 'nullable|boolean',
         ];
 
-        // Add image validation - only validate if file is actually uploaded and valid
-        // Check featured_image upload error code (UPLOAD_ERR_NO_FILE = 4 means no file)
-        if ($req->hasFile('featured_image')) {
-            $featuredImage = $req->file('featured_image');
-            if ($featuredImage && $featuredImage->getError() !== UPLOAD_ERR_NO_FILE && $featuredImage->isValid()) {
-                $rules['featured_image'] = 'image|mimes:jpg,jpeg,png|max:2048';
-            }
-        }
-
-        // Check images array - only validate valid files
-        if ($req->hasFile('images')) {
-            $hasValidImages = false;
-            foreach ($req->file('images') as $file) {
-                if ($file && $file->getError() !== UPLOAD_ERR_NO_FILE && $file->isValid()) {
-                    $hasValidImages = true;
-                    break;
-                }
-            }
-            if ($hasValidImages) {
-                $rules['images.*'] = 'image|mimes:jpg,jpeg,png|max:2048';
-            }
-        }
-
         $data = $req->validate($rules);
 
-        // Auto-generate slug from title if not provided
+        // 🧩 Auto-slug if missing
         if (empty($data['slug']) && !empty($data['title'])) {
-            $data['slug'] = \Illuminate\Support\Str::slug($data['title']);
-            // Ensure uniqueness
-            $originalSlug = $data['slug'];
-            $counter = 1;
-            while (Product::where('slug', $data['slug'])->exists()) {
-                $data['slug'] = $originalSlug . '-' . $counter;
-                $counter++;
-            }
+            $data['slug'] = Str::slug($data['title']);
         }
 
-        // Handle featured image
-        if ($req->hasFile('featured_image')) {
+        // 🖼️ Update featured image
+        if ($req->hasFile('featured_image') && $req->file('featured_image')->isValid()) {
+            if ($product->featured_image && Storage::disk('public')->exists($product->featured_image)) {
+                Storage::disk('public')->delete($product->featured_image);
+            }
             $data['featured_image'] = $req->file('featured_image')->store('products', 'public');
         }
 
-        // Convert checkbox values to boolean
-        $data['is_active'] = $req->has('is_active') ? true : false;
-        $data['is_featured'] = $req->has('is_featured') ? true : false;
-
-        $product = Product::create($data);
-
-        // Handle additional images (only process valid files)
+        // 🖼️ Update multiple images (append new)
+        $existingImages = json_decode($product->images, true) ?? [];
         if ($req->hasFile('images')) {
             foreach ($req->file('images') as $file) {
-                if ($file && $file->isValid() && $file->getError() === UPLOAD_ERR_OK) {
-                    $path = $file->store('products', 'public');
-                    $product->images()->create(['path' => $path]);
+                if ($file->isValid()) {
+                    $existingImages[] = $file->store('products/gallery', 'public');
                 }
             }
         }
+        $data['images'] = json_encode($existingImages);
 
-        return redirect()->route('admin.products.index')->with('success', 'Product created successfully!');
-    }
-
-    public function edit(Product $product) { $categories = Category::all(); return view('admin.products.edit', compact('product','categories')); }
-
-    public function update(Request $req, Product $product)
-    {
-        $data = $req->validate(['title'=>'required','slug'=>"required|unique:products,slug,{$product->id}",'price'=>'required|numeric','stock'=>'required|integer']);
         $product->update($data);
-        return back()->with('success','Updated');
+
+        return redirect()->route('admin.products.index')->with('success', '✅ Product updated successfully!');
     }
 
+    /**
+     * 🗑️ Delete product
+     */
     public function destroy(Product $product)
     {
-        foreach ($product->images as $img) Storage::disk('public')->delete($img->path);
-        $product->delete();
-        return back()->with('success','Deleted');
+        try {
+            DB::transaction(function () use ($product) {
+                if ($product->featured_image && Storage::disk('public')->exists($product->featured_image)) {
+                    Storage::disk('public')->delete($product->featured_image);
+                }
+
+                $images = json_decode($product->images, true);
+                if ($images) {
+                    foreach ($images as $img) {
+                        if (Storage::disk('public')->exists($img)) {
+                            Storage::disk('public')->delete($img);
+                        }
+                    }
+                }
+
+                $product->delete();
+            });
+
+            return back()->with('success', '🗑️ Product deleted successfully!');
+        } catch (\Exception $e) {
+            return back()->with('error', '⚠️ Error deleting product: ' . $e->getMessage());
+        }
     }
 }

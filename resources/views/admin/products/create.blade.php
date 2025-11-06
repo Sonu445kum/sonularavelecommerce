@@ -84,12 +84,12 @@
             </div>
         </div>
 
-        <div class="mb-3">
+        <!-- <div class="mb-3">
             <div class="form-check">
                 <input class="form-check-input" type="checkbox" name="is_featured" value="1" id="is_featured">
                 <label class="form-check-label" for="is_featured">Featured Product</label>
             </div>
-        </div>
+        </div> -->
 
         <button type="submit" class="btn btn-success">Save Product</button>
         <a href="{{ route('admin.products.index') }}" class="btn btn-secondary">Cancel</a>

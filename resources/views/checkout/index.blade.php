@@ -26,6 +26,7 @@
             <a href="{{ route('products.index') }}" class="underline font-semibold">Shop now →</a>
         </div>
     @else
+        {{-- ✅ Only ONE form for checkout --}}
         <form action="{{ route('checkout.process') }}" method="POST">
             @csrf
 
@@ -155,25 +156,27 @@
                             $total = max($subtotal - $discount + $shipping, 0);
                         @endphp
 
-                        {{-- 🎟️ Coupon Input --}}
-                        <form action="{{ route('checkout.applyCoupon') }}" method="POST" class="mt-4">
-                            @csrf
-                            <div class="flex items-center space-x-2">
-                                <input type="text" name="code" placeholder="Enter coupon code"
-                                       class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500"
-                                       value="{{ old('code', session('coupon.code') ?? '') }}">
-                                <button type="submit"
-                                        class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-                                    Apply
-                                </button>
-                            </div>
+                        {{-- 🎟️ Coupon Input (Separate form to avoid nesting) --}}
+                        <div class="mt-4">
+                            <form action="{{ route('checkout.applyCoupon') }}" method="POST">
+                                @csrf
+                                <div class="flex items-center space-x-2">
+                                    <input type="text" name="code" placeholder="Enter coupon code"
+                                           class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500"
+                                           value="{{ old('code', session('coupon.code') ?? '') }}">
+                                    <button type="submit"
+                                            class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                                        Apply
+                                    </button>
+                                </div>
 
-                            @if(session('coupon'))
-                                <p class="text-green-600 text-sm mt-1">
-                                    ✅ Coupon Applied: <strong>{{ session('coupon.code') }}</strong>
-                                </p>
-                            @endif
-                        </form>
+                                @if(session('coupon'))
+                                    <p class="text-green-600 text-sm mt-1">
+                                        ✅ Coupon Applied: <strong>{{ session('coupon.code') }}</strong>
+                                    </p>
+                                @endif
+                            </form>
+                        </div>
 
                         {{-- 📦 Total Summary --}}
                         <div class="mt-6 border-t pt-4 space-y-2 text-sm">

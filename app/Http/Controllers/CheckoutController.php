@@ -17,6 +17,7 @@ use App\Models\User;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 use Exception;
+use App\Models\Payment;
 
 class CheckoutController extends Controller
 {
@@ -356,32 +357,55 @@ class CheckoutController extends Controller
     }
 
     /**
-     * ✅ Success page
+     *  Success page
      */
-    public function success(Request $req)
-    {
-        $order = Order::find($req->order_id);
-        if (!$order) {
-            return redirect()->route('home')->withErrors('Order not found.');
-        }
-
-        $order->update([
-            'status' => 'Processing',
-            'payment_status' => 'Paid',
-            'paid_at' => now(),
-        ]);
-
-        if ($order->user_id) {
-            $cart = Cart::where('user_id', $order->user_id)->first();
-            if ($cart) {
-                $cart->items()->delete();
-                $cart->delete();
-            }
-        }
-
-        $coupon = $order->coupon_code ?? null;
-        return view('checkout.success', compact('order', 'coupon'));
+   public function success(Request $req)
+{
+    $order = Order::find($req->order_id);
+    if (!$order) {
+        return redirect()->route('home')->withErrors('Order not found.');
     }
+
+    // ✅ Update Order Status
+    $order->update([
+        'status' => 'Processing',
+        'payment_status' => 'Paid',
+        'paid_at' => now(),
+    ]);
+
+    // ✅ Reload updated order
+    $order->refresh();
+
+    // ✅ Create Payment Record
+    Payment::create([
+        'order_id' => $order->id,
+        // 🔹 Generate unique transaction ID if null
+        'transaction_id' => $order->payment_intent_id ?? ('STRIPE-' . strtoupper(uniqid())),
+        'status' => 'success',
+        'method' => $order->payment_method ?? 'stripe',
+        'amount' => $order->total ?? 0,
+        'meta' => json_encode([
+            'user_id' => $order->user_id,
+            'coupon' => $order->coupon_code,
+            'paid_at' => now()->toDateTimeString(),
+        ]),
+    ]);
+
+    // ✅ Clean up cart
+    if ($order->user_id) {
+        $cart = Cart::where('user_id', $order->user_id)->first();
+        if ($cart) {
+            $cart->items()->delete();
+            $cart->delete();
+        }
+    }
+
+    // ✅ Pass data to success page
+    $coupon = $order->coupon_code ?? null;
+
+    return view('checkout.success', compact('order', 'coupon'))
+        ->with('success', 'Payment recorded successfully!');
+}
 
     /**
      * ❌ Cancel page
