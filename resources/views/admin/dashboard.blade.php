@@ -56,8 +56,10 @@
                 ['icon' => 'bi-currency-rupee', 'title' => 'Total Revenue', 'value' => '₹' . number_format($totalRevenue ?? 0, 2), 'color' => 'linear-gradient(135deg, #17a2b8, #63e6be)'],
                 ['icon' => 'bi-wallet2', 'title' => 'Successful Payments', 'value' => $successfulPayments ?? 0, 'color' => 'linear-gradient(135deg, #198754, #6fdc8c)'],
 
-                ['icon' => 'bi-heart', 'title' => 'Wishlist Items', 'value' => $wishlistCount ?? 0, 'color' => 'linear-gradient(135deg, #20c997, #48dbfb)'],
-            ];
+                
+
+            
+            ]; 
         @endphp
 
         @foreach($cards as $card)

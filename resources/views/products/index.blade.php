@@ -97,7 +97,7 @@
                     @foreach ($products as $product)
                         <div class="group bg-white shadow-md rounded-2xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all duration-300 relative">
 
-                            {{-- ❤️ Wishlist Heart Icon --}}
+                          {{-- ❤️ Wishlist Heart Icon --}}
                             @auth
                                 @php
                                     $inWishlist = \App\Models\Wishlist::where('user_id', Auth::id())
@@ -112,17 +112,19 @@
                                 >
                                     @csrf
                                     <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                    <button type="submit" 
-                                        class="bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition wishlist-btn {{ $inWishlist ? 'text-red-500' : 'text-gray-400' }}">
-                                        <i class="fas {{ $inWishlist ? 'fa-heart' : 'fa-heart' }}"></i>
+                                    <button type="submit" class="wishlist-btn relative w-10 h-10 flex items-center justify-center rounded-full shadow hover:scale-110 transition">
+                                        <span class="absolute inset-0 rounded-full transition-colors bg-white/80 group-hover:bg-red-100"></span>
+                                        <i class="{{ $inWishlist ? 'fas' : 'far' }} fa-heart text-xl {{ $inWishlist ? 'text-red-600' : 'text-gray-400' }} relative z-10"></i>
                                     </button>
                                 </form>
                             @else
                                 <a href="{{ route('login') }}" 
-                                   class="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow hover:scale-110 transition">
+                                class="absolute top-3 right-3 z-10 p-2 rounded-full shadow hover:scale-110 transition"
+                                style="background: rgba(255,255,255,0.9); backdrop-filter: blur(5px);">
                                     <i class="far fa-heart text-gray-400 text-xl"></i>
                                 </a>
                             @endauth
+
 
                             {{-- 🖼 Image --}}
                             <div class="relative">
@@ -180,7 +182,21 @@
         </div>
     </div>
 </div>
+<style>
+    .wishlist-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #de0e0eff;
+    border-radius: 50%;
+}
 
+.wishlist-btn i {
+    font-size: 1rem;
+}
+</style>
 {{-- ==========================
      ❤️ AJAX WISHLIST SCRIPT
 ========================== --}}
@@ -193,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const button = form.querySelector('.wishlist-btn');
-            const icon = button.querySelector('i');
+            const icon = button.querySelector('i'); // ← icon select karna zaruri hai
 
             try {
                 const response = await fetch(form.action, {
@@ -209,8 +225,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (data.status) {
-                    button.classList.toggle('text-red-500');
-                    button.classList.toggle('text-gray-400');
+                    // Toggle icon color
+                    icon.classList.toggle('text-red-500');
+                    icon.classList.toggle('text-gray-400');
+
+                    // Optional: toggle solid/regular heart
+                    icon.classList.toggle('fas');
+                    icon.classList.toggle('far');
+
                     showToast(data.message, 'success');
                 } else {
                     showToast(data.message, 'error');
@@ -222,7 +244,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Toast Notification
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
         toast.className = `fixed top-5 right-5 px-4 py-3 rounded-lg text-white shadow-lg transition transform duration-500 ${
@@ -233,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => toast.remove(), 2500);
     }
 });
+
 </script>
 @endpush
 @endsection

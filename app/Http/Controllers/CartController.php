@@ -27,7 +27,7 @@ class CartController extends Controller
             ]);
         }
 
-        // ✅ Calculate subtotal (reliable)
+        // ✅ Calculate subtotal
         $subtotal = $cart->items->sum(function ($item) {
             return $item->product->price * $item->quantity;
         });
@@ -38,7 +38,7 @@ class CartController extends Controller
     }
 
     /**
-     * ➕ Add Product to Cart
+     * ➕ Add Product to Cart (with stock update)
      */
     public function add(Request $request)
     {
@@ -50,6 +50,12 @@ class CartController extends Controller
 
         $user = Auth::user();
         $product = Product::findOrFail($validated['product_id']);
+        $requestedQty = $validated['quantity'];
+
+        // ✅ Check stock availability
+        if ($product->stock < $requestedQty) {
+            return redirect()->back()->with('error', '⚠️ Only ' . $product->stock . ' items left in stock!');
+        }
 
         // ✅ Get or create user's cart
         $cart = Cart::firstOrCreate(['user_id' => $user->id]);
@@ -58,31 +64,39 @@ class CartController extends Controller
         $cartItem = $cart->items()->where('product_id', $product->id)->first();
 
         if ($cartItem) {
-            // Update existing item
+            $newQty = $cartItem->quantity + $requestedQty;
+
+            // Prevent exceeding stock
+            if ($newQty > $product->stock) {
+                return redirect()->back()->with('error', '⚠️ Not enough stock available!');
+            }
+
             $cartItem->update([
-                'quantity' => $cartItem->quantity + $validated['quantity'],
+                'quantity' => $newQty,
                 'price' => $product->price,
             ]);
         } else {
-            // Create new item
             $cart->items()->create([
                 'product_id' => $product->id,
-                'quantity'   => $validated['quantity'],
+                'quantity'   => $requestedQty,
                 'price'      => $product->price,
             ]);
         }
+
+        // ✅ Decrease stock dynamically
+        $product->decrement('stock', $requestedQty);
 
         // ✅ Update subtotal
         $cart->update(['subtotal' => $cart->calculateSubtotal()]);
 
         // ✅ Save last selected quantity in session
-        Session::put('last_selected_quantity_' . $product->id, $validated['quantity']);
+        Session::put('last_selected_quantity_' . $product->id, $requestedQty);
 
-        return redirect()->back()->with('success', '✅ Product added to cart successfully!');
+        return redirect()->back()->with('success', '✅ Product added to cart successfully! Stock updated.');
     }
 
     /**
-     * 🔄 Update Quantity
+     * 🔄 Update Quantity (also adjusts stock)
      */
     public function update(Request $request, $id)
     {
@@ -91,27 +105,49 @@ class CartController extends Controller
         ]);
 
         $cartItem = CartItem::findOrFail($id);
-        $cartItem->update(['quantity' => $validated['quantity']]);
+        $product = $cartItem->product;
+
+        $oldQty = $cartItem->quantity;
+        $newQty = $validated['quantity'];
+        $difference = $newQty - $oldQty;
+
+        // ✅ If increasing quantity
+        if ($difference > 0) {
+            if ($product->stock < $difference) {
+                return redirect()->back()->with('error', '⚠️ Only ' . $product->stock . ' more items left!');
+            }
+            $product->decrement('stock', $difference);
+        }
+        // ✅ If decreasing quantity
+        elseif ($difference < 0) {
+            $product->increment('stock', abs($difference));
+        }
+
+        $cartItem->update(['quantity' => $newQty]);
 
         // ✅ Update subtotal
         $cart = $cartItem->cart;
         $cart->update(['subtotal' => $cart->calculateSubtotal()]);
 
-        // ✅ Update session quantity (for View Details page)
-        Session::put('last_selected_quantity_' . $cartItem->product_id, $validated['quantity']);
+        // ✅ Update session quantity
+        Session::put('last_selected_quantity_' . $cartItem->product_id, $newQty);
 
-        return redirect()->back()->with('success', '🛍️ Cart updated successfully!');
+        return redirect()->back()->with('success', '🛍️ Cart updated successfully! Stock adjusted.');
     }
 
     /**
-     * ❌ Remove Item from Cart
+     * ❌ Remove Item from Cart (restore stock)
      */
     public function remove($id)
     {
         $cartItem = CartItem::findOrFail($id);
         $cart = $cartItem->cart;
+        $product = $cartItem->product;
 
-        // Remove quantity session too
+        // ✅ Restore stock
+        $product->increment('stock', $cartItem->quantity);
+
+        // Remove session
         Session::forget('last_selected_quantity_' . $cartItem->product_id);
 
         $cartItem->delete();
@@ -119,19 +155,20 @@ class CartController extends Controller
         // ✅ Update subtotal
         $cart->update(['subtotal' => $cart->calculateSubtotal()]);
 
-        return redirect()->back()->with('success', '🗑️ Item removed from cart!');
+        return redirect()->back()->with('success', '🗑️ Item removed and stock restored!');
     }
 
     /**
-     * 🧹 Clear Entire Cart
+     * 🧹 Clear Entire Cart (restore all stock)
      */
     public function clear()
     {
         $cart = Cart::where('user_id', Auth::id())->first();
 
         if ($cart) {
-            // Forget all session quantities
             foreach ($cart->items as $item) {
+                // Restore stock for each product
+                $item->product->increment('stock', $item->quantity);
                 Session::forget('last_selected_quantity_' . $item->product_id);
             }
 
@@ -139,6 +176,6 @@ class CartController extends Controller
             $cart->update(['subtotal' => 0]);
         }
 
-        return redirect()->back()->with('success', '🧹 Cart cleared successfully!');
+        return redirect()->back()->with('success', '🧹 Cart cleared and stock restored!');
     }
 }

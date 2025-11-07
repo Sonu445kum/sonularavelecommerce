@@ -29,17 +29,25 @@
         </div>
     </div>
 
-    {{-- Shipping Address --}}
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Shipping Address</h5>
-            @if($order->shipping_address)
-                <p>{{ $order->shipping_address }}</p>
-            @else
-                <p class="text-muted">No shipping address provided.</p>
-            @endif
-        </div>
+  {{-- Shipping Address --}}
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <h5 class="card-title">Shipping Address</h5>
+        @if($order->address)
+            <p>
+                <strong>{{ $order->address->name ?? 'N/A' }}</strong><br>
+                {{ $order->address->address ?? '' }}<br>
+                {{ $order->address->city ?? '' }}, {{ $order->address->state ?? '' }} - {{ $order->address->pincode ?? '' }}<br>
+                {{ $order->address->country ?? '' }}<br>
+                <strong>Phone:</strong> {{ $order->address->phone ?? 'N/A' }}
+            </p>
+        @else
+            <p class="text-muted">No shipping address provided.</p>
+        @endif
     </div>
+</div>
+
+
 
     {{-- Order Items Table --}}
     <div class="card mb-4 shadow-sm">

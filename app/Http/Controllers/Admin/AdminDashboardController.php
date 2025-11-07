@@ -8,7 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Payment;
-use App\Models\Wishlist;
+use App\Models\Notification;
 
 class AdminDashboardController extends Controller
 {
@@ -22,18 +22,33 @@ class AdminDashboardController extends Controller
         $totalUsers = User::count();
         $totalProducts = Product::count();
         $totalCategories = Category::count();
-        $totalRevenue = Order::where('status', 'completed')->sum('total_amount');
-        $successfulPayments = Payment::where('status', 'success')->count();
-        $wishlistCount = Wishlist::count();
 
-        // 🧾 Recent Orders (latest 5)
+        // 💰 Correct Total Revenue from Payments table (only successful)
+        $totalRevenue = Payment::where('status', 'success')->sum('amount');
+
+        // ✅ Count of successful payments
+        $successfulPayments = Payment::where('status', 'success')->count();
+
+        // Debug check (optional - comment after testing)
+        dd([
+            'totalRevenue' => $totalRevenue,
+            'successfulPayments' => $successfulPayments,
+            'all_status' => Payment::select('id','status','amount')->get(),
+        ]);
+
+        // 🧾 Recent Orders
         $recentOrders = Order::with('user')->latest()->take(5)->get();
 
         // 👤 Recent Users
         $recentUsers = User::latest()->take(5)->get();
 
         // 💳 Recent Payments
-        $recentPayments = Payment::latest()->take(5)->get();
+        $recentPayments = Payment::with(['order.user'])->latest()->take(5)->get();
+
+        // 🔔 Notifications (optional)
+        $notifications = class_exists(Notification::class)
+            ? Notification::latest()->take(5)->get()
+            : collect();
 
         return view('admin.dashboard', compact(
             'totalOrders',
@@ -42,10 +57,10 @@ class AdminDashboardController extends Controller
             'totalCategories',
             'totalRevenue',
             'successfulPayments',
-            'wishlistCount',
             'recentOrders',
             'recentUsers',
-            'recentPayments'
+            'recentPayments',
+            'notifications'
         ));
     }
 }

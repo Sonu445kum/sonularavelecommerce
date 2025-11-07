@@ -1,4 +1,4 @@
-@extends('layouts.app')
+<!-- @extends('layouts.app')
 
 @section('title', 'Order Details')
 
@@ -102,7 +102,7 @@
                     </div>
 
                     {{-- ⭐ Delivered Orders: Review Section --}}
-                    @if($order->status === 'Delivered' && $product)
+                     @if(in_array($order->status, ['Delivered', 'Processing', 'Shipped']) && $product)
                         <div class="mt-4 w-full bg-white border rounded-lg p-4 shadow-sm">
                             <h3 class="font-semibold text-gray-900 text-lg mb-3">Your Review</h3>
 
@@ -134,7 +134,7 @@
                                 {{-- ✍️ Review Form --}}
                                 <form action="{{ route('reviews.store', $product->id) }}" method="POST" enctype="multipart/form-data" class="space-y-3">
                                     @csrf
-                                    <input type="hidden" name="rating" id="rating-input-{{ $item->id }}">
+                                    <input type="hidden" name="order_id" value="{{ $order->id }}">
                                     
                                     {{-- 🟡 Star Rating --}}
                                     <div class="flex items-center mb-2" id="rating-{{ $item->id }}">
@@ -169,7 +169,21 @@
                                     <div>
                                         <label class="block text-gray-800 font-medium mb-1">Upload Video (optional)</label>
                                         <input type="file" name="video" accept="video/*" class="block w-full text-sm text-gray-500" onchange="previewVideo(event, {{ $item->id }})">
+                                        <div class="flex gap-2 mb-2">
+                                            <button type="button" onclick="startRecording({{ $item->id }})" id="record-btn-{{ $item->id }}" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">
+                                                📹 Record with Webcam
+                                            </button>
+                                            <button type="button" onclick="stopRecording({{ $item->id }})" id="stop-btn-{{ $item->id }}" class="bg-gray-500 text-white px-3 py-1 rounded text-sm hover:bg-gray-600 hidden">
+                                                ⏹️ Stop
+                                            </button>
+                                            <label class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 cursor-pointer">
+                                                📁 Upload File
+                                                <input type="file" name="video" accept="video/*" class="hidden" onchange="previewVideo(event, {{ $item->id }})">
+                                            </label>
+                                        </div>
+                                        <video id="webcam-{{ $item->id }}" class="mt-2 w-full max-w-md rounded-md hidden" autoplay muted></video>
                                         <video id="video-preview-{{ $item->id }}" class="mt-2 w-full max-w-md rounded-md hidden" controls></video>
+                                        <input type="hidden" name="recorded_video" id="recorded-video-{{ $item->id }}">
                                     </div>
 
                                     <button type="submit" class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600 transition">
@@ -216,6 +230,8 @@
 
 {{-- ⭐ JS for Rating, Drag & Drop, Video Preview --}}
 <script>
+    let mediaRecorders = {};
+    let recordedChunks = {};
 function setRating(itemId, rating) {
     document.getElementById(`rating-input-${itemId}`).value = rating;
     for (let i=1;i<=5;i++){
@@ -252,13 +268,71 @@ function handleFiles(event, itemId){
 
 function previewVideo(event, itemId){
     const video=document.getElementById(`video-preview-${itemId}`);
+    const webcam=document.getElementById(`webcam-${itemId}`);
     const file=event.target.files[0];
     if(file){
         video.src=URL.createObjectURL(file);
         video.classList.remove('hidden');
+        webcam.classList.add('hidden');
     }else{
         video.src='';
         video.classList.add('hidden');
+    }
+}
+
+async function startRecording(itemId){
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const webcam = document.getElementById(`webcam-${itemId}`);
+        const recordBtn = document.getElementById(`record-btn-${itemId}`);
+        const stopBtn = document.getElementById(`stop-btn-${itemId}`);
+        
+        webcam.srcObject = stream;
+        webcam.classList.remove('hidden');
+        recordBtn.classList.add('hidden');
+        stopBtn.classList.remove('hidden');
+        
+        recordedChunks[itemId] = [];
+        mediaRecorders[itemId] = new MediaRecorder(stream);
+        
+        mediaRecorders[itemId].ondataavailable = (e) => {
+            if (e.data.size > 0) {
+                recordedChunks[itemId].push(e.data);
+            }
+        };
+        
+        mediaRecorders[itemId].start();
+    } catch (err) {
+        alert('Could not access webcam: ' + err.message);
+    }
+}
+
+function stopRecording(itemId){
+    const recorder = mediaRecorders[itemId];
+    const webcam = document.getElementById(`webcam-${itemId}`);
+    const videoPreview = document.getElementById(`video-preview-${itemId}`);
+    const recordBtn = document.getElementById(`record-btn-${itemId}`);
+    const stopBtn = document.getElementById(`stop-btn-${itemId}`);
+    
+    if (recorder && recorder.state !== 'inactive') {
+        recorder.stop();
+        recorder.onstop = () => {
+            const blob = new Blob(recordedChunks[itemId], { type: 'video/webm' });
+            videoPreview.src = URL.createObjectURL(blob);
+            videoPreview.classList.remove('hidden');
+            
+            // Convert blob to base64 and store in hidden input
+            const reader = new FileReader();
+            reader.readAsDataURL(blob);
+            reader.onloadend = () => {
+                document.getElementById(`recorded-video-${itemId}`).value = reader.result;
+            };
+            
+            webcam.srcObject.getTracks().forEach(track => track.stop());
+            webcam.classList.add('hidden');
+            recordBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+        };
     }
 }
 
@@ -274,4 +348,4 @@ dropZone{{ $item->id }}.addEventListener('drop', e=>{
 });
 @endforeach
 </script>
-@endsection
+@endsection -->

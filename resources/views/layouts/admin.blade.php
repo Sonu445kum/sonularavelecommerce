@@ -141,9 +141,9 @@
             <i class="bi bi-ticket-detailed"></i> Coupon Management
         </a>
 
-        <a href="{{ route('admin.wishlist.index') }}" class="{{ request()->routeIs('admin.wishlist.*') ? 'active' : '' }}">
+        <!-- <a href="{{ route('admin.wishlist.index') }}" class="{{ request()->routeIs('admin.wishlist.*') ? 'active' : '' }}">
             <i class="bi bi-heart"></i> Wishlist Management
-        </a>
+        </a> -->
 
         <a href="{{ route('admin.payments.index') }}" class="{{ request()->routeIs('admin.payments.*') ? 'active' : '' }}">
             <i class="bi bi-cash-coin"></i> Payment Management

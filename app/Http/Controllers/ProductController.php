@@ -114,12 +114,12 @@ class ProductController extends Controller
             ->take(4)
             ->get();
 
-        // 🧩 Reviews (Approved only)
+        // 🧩 Reviews (Approved only + Paginated)
         $reviews = Review::with('user')
             ->where('product_id', $product->id)
             ->where('is_approved', true)
-            ->latest()
-            ->get();
+            ->orderBy('created_at', 'desc')
+            ->paginate(5); // 5 reviews per page
 
         return view('products.show', compact('product', 'relatedProducts', 'allImages', 'reviews'));
     }
@@ -134,8 +134,8 @@ class ProductController extends Controller
         $req->validate([
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string|max:1000',
-            'images.*' => 'nullable|image|max:5120',
-            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime|max:20480', // 20MB max
+            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime|max:20480', // 20MB
         ]);
 
         $product = Product::findOrFail($productId);
@@ -149,33 +149,33 @@ class ProductController extends Controller
             return back()->with('error', 'You have already submitted a review for this product.');
         }
 
-        // 🧩 Create review record
+        // 🧩 Create new review record
         $review = new Review();
         $review->user_id = Auth::id();
         $review->product_id = $productId;
         $review->rating = $req->rating;
         $review->comment = $req->comment ?? null;
-        $review->is_approved = false; // Admin will approve
+        $review->is_approved = false; // Wait for admin approval
         $review->save();
 
-        // 🖼️ Handle images upload
+        // 🖼️ Handle multiple images upload
+        $paths = [];
         if ($req->hasFile('images')) {
-            $paths = [];
             foreach ($req->file('images') as $file) {
-                $paths[] = $file->store('reviews', 'public');
+                $paths[] = $file->store('reviews', 'public'); // Store in storage/app/public/reviews
             }
-            $review->images = $paths;
+            $review->images = json_encode($paths); // ✅ Proper JSON encoding
             $review->save();
         }
 
-        // 🎥 Handle video upload (WebRTC)
+        // 🎥 Handle single video upload (WebRTC)
         if ($req->hasFile('video')) {
             $videoPath = $req->file('video')->store('review_videos', 'public');
             $review->video_path = $videoPath;
             $review->save();
         }
 
-        return back()->with('success', 'Your review has been submitted successfully and is awaiting approval.');
+        return back()->with('success', '✅ Your review has been submitted successfully and is awaiting admin approval.');
     }
 
     /**

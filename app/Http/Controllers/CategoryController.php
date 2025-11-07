@@ -11,12 +11,7 @@ use Illuminate\Support\Facades\DB;
 class CategoryController extends Controller
 {
     /**
-     * ----------------------------------------------------
-     * 🏷️ INDEX METHOD
-     * ----------------------------------------------------
-     * Displays either:
-     *  - All categories (if no slug passed)
-     *  - Products inside a specific category (if slug passed)
+     * 🏷️ Show all categories or products in category
      */
     public function index(Request $req, $slug = null)
     {
@@ -36,10 +31,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * 👨‍💼 ADMIN INDEX METHOD
-     * ----------------------------------------------------
-     * Displays all categories for admin management
+     * 👨‍💼 Admin - Show all categories
      */
     public function adminIndex()
     {
@@ -48,10 +40,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * ➕ CREATE METHOD
-     * ----------------------------------------------------
-     * Shows the form to create a new category
+     * ➕ Show create form
      */
     public function create()
     {
@@ -60,10 +49,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * ✏️ EDIT METHOD
-     * ----------------------------------------------------
-     * Shows the form to edit an existing category
+     * ✏️ Show edit form
      */
     public function edit($id)
     {
@@ -76,58 +62,44 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * 🛍️ SHOW METHOD
-     * ----------------------------------------------------
-     * Handles:
-     *  - "Shop Now" button → shows all products
-     *  - Category details page → products by category
+     * 🛍️ Show category or all products
      */
     public function show($slug)
     {
         if ($slug === 'all') {
             $categoryName = 'All Products';
-            $products = Product::where('is_active', true)
-                ->latest()
-                ->paginate(12);
+            $products = Product::where('is_active', true)->latest()->paginate(12);
         } else {
             $category = Category::where('slug', $slug)->firstOrFail();
             $categoryName = $category->name;
-            $products = $category->products()
-                ->where('is_active', true)
-                ->paginate(12);
+            $products = $category->products()->where('is_active', true)->paginate(12);
         }
 
         return view('categories.show', compact('products', 'categoryName'));
     }
 
     /**
-     * ----------------------------------------------------
-     * ➕ STORE METHOD
-     * ----------------------------------------------------
-     * Creates a new category (used in admin panel)
+     * ✅ STORE - Create new category
      */
     public function store(Request $req)
     {
         $data = $req->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:categories,slug',
+            'slug' => 'nullable|string|max:255',
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
         ]);
 
-        // ✅ Auto-generate unique slug if not provided
-        if (empty($data['slug'])) {
+        // 🔹 Handle slug logic
+        if (!empty($data['slug'])) {
+            $baseSlug = Str::slug($data['slug']);
+        } else {
             $baseSlug = Str::slug($data['name']);
-            $slug = $baseSlug;
-            $i = 1;
-
-            while (Category::where('slug', $slug)->exists()) {
-                $slug = $baseSlug . '-' . $i++;
-            }
-
-            $data['slug'] = $slug;
         }
+
+        // Always ensure unique slug
+        $slug = $this->generateUniqueSlug($baseSlug);
+        $data['slug'] = $slug;
 
         Category::create($data);
 
@@ -137,34 +109,27 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * ✏️ UPDATE METHOD
-     * ----------------------------------------------------
-     * Updates existing category data.
+     * ✅ UPDATE - Update category
      */
     public function update(Request $req, Category $category)
     {
         $data = $req->validate([
             'name' => 'required|string|max:255',
-            'slug' => "nullable|string|max:255|unique:categories,slug,{$category->id}",
+            'slug' => 'nullable|string|max:255',
             'parent_id' => 'nullable|exists:categories,id',
             'description' => 'nullable|string',
         ]);
 
-        // ✅ Auto-generate slug if left blank
-        if (empty($data['slug'])) {
+        // 🔹 If user updated slug manually
+        if (!empty($data['slug'])) {
+            $baseSlug = Str::slug($data['slug']);
+        } else {
             $baseSlug = Str::slug($data['name']);
-            $slug = $baseSlug;
-            $i = 1;
-
-            while (Category::where('slug', $slug)
-                ->where('id', '!=', $category->id)
-                ->exists()) {
-                $slug = $baseSlug . '-' . $i++;
-            }
-
-            $data['slug'] = $slug;
         }
+
+        // Ensure unique slug (ignore current ID)
+        $slug = $this->generateUniqueSlug($baseSlug, $category->id);
+        $data['slug'] = $slug;
 
         $category->update($data);
 
@@ -174,10 +139,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * ----------------------------------------------------
-     * 🗑️ DESTROY METHOD
-     * ----------------------------------------------------
-     * Deletes a category and all its child categories.
+     * 🗑️ Delete category + subcategories
      */
     public function destroy(Category $category)
     {
@@ -187,10 +149,8 @@ class CategoryController extends Controller
                 $category->delete();
             });
 
-            // Optional cache cleanup
             cache()->forget('categories_list');
 
-            // ✅ Check if the request came via AJAX
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => true,
@@ -198,13 +158,11 @@ class CategoryController extends Controller
                 ]);
             }
 
-            // ✅ Normal delete (form POST)
             return redirect()
                 ->route('admin.categories.index')
                 ->with('success', '🗑️ Category deleted successfully!');
 
         } catch (\Exception $e) {
-            // Handle errors for both JSON & redirect requests
             if (request()->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -217,7 +175,7 @@ class CategoryController extends Controller
     }
 
     /**
-     * ✅ Helper to delete nested subcategories
+     * ♻️ Recursive delete for subcategories
      */
     private function deleteSubcategories(Category $category)
     {
@@ -227,5 +185,24 @@ class CategoryController extends Controller
                 $child->delete();
             }
         }
+    }
+
+    /**
+     * 🧠 Helper - Generate unique slug
+     */
+    private function generateUniqueSlug($baseSlug, $ignoreId = null)
+    {
+        $slug = $baseSlug;
+        $i = 1;
+
+        while (
+            Category::where('slug', $slug)
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->exists()
+        ) {
+            $slug = $baseSlug . '-' . $i++;
+        }
+
+        return $slug;
     }
 }

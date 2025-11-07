@@ -91,9 +91,9 @@
         <a href="{{ route('admin.profile.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
             👤 Profile
         </a>
-        <a href="{{ route('admin.wishlist.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
+        <!-- <a href="{{ route('admin.wishlist.index') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">
             ❤️ Wishlist
-        </a>
+        </a> -->
     @else
         {{-- 👤 User Menu --}}
         <a href="{{ route('profile') }}" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">

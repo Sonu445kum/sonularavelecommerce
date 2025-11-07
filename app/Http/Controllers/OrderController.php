@@ -74,6 +74,9 @@ class OrderController extends Controller
         $order = Order::with([
             'user',
             'items.product.images',
+             'items.product.reviews' => function ($query) {
+                $query->where('user_id', Auth::id());
+            },
             'address',
             'payments' => function ($q) {
                 $q->latest();

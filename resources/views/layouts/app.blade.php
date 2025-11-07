@@ -25,6 +25,8 @@
         crossorigin="anonymous"
         referrerpolicy="no-referrer"
     />
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-somehash" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
         body {
@@ -53,7 +55,7 @@
         .carousel-caption p {
             font-size: 1.1rem;
         }
-
+        
         /* 🌟 Global Toast Animation */
         @keyframes slide-in {
             from { opacity: 0; transform: translateY(-20px); }
