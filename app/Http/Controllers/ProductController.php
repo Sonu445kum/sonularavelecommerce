@@ -22,43 +22,40 @@ class ProductController extends Controller
 
         // 🔍 Search filter
         if ($req->filled('q')) {
-            $search = $req->q;
+            $search = trim($req->q);
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
-        // 🏷️ Category filter (slug-based)
+        // 🏷️ Category filter
         if ($req->filled('category')) {
             $query->whereHas('category', function ($cat) use ($req) {
                 $cat->where('slug', $req->category);
             });
         }
 
-        // 💰 Price range filter
+        // 💰 Price filter
         if ($req->filled('min_price')) {
-            $query->where('price', '>=', (float)$req->min_price);
+            $query->where('price', '>=', (float) $req->min_price);
         }
         if ($req->filled('max_price')) {
-            $query->where('price', '<=', (float)$req->max_price);
+            $query->where('price', '<=', (float) $req->max_price);
         }
 
-        // 🔽 Sorting filter
-        if ($req->filled('sort')) {
-            switch ($req->sort) {
-                case 'price_asc':
-                    $query->orderBy('price', 'asc');
-                    break;
-                case 'price_desc':
-                    $query->orderBy('price', 'desc');
-                    break;
-                case 'latest':
-                default:
-                    $query->latest();
-            }
-        } else {
-            $query->latest();
+        // 🔽 Sorting
+        switch ($req->get('sort')) {
+            case 'price_asc':
+                $query->orderBy('price', 'asc');
+                break;
+            case 'price_desc':
+                $query->orderBy('price', 'desc');
+                break;
+            case 'latest':
+            default:
+                $query->latest();
+                break;
         }
 
         $products = $query->paginate(12)->withQueryString();
@@ -77,13 +74,11 @@ class ProductController extends Controller
      */
     public function show($slug)
     {
-        $product = Product::with([
-            'category',
-            'reviews.user',
-            'images'
-        ])->where('slug', $slug)->firstOrFail();
+        $product = Product::with(['category', 'reviews.user'])
+            ->where('slug', $slug)
+            ->firstOrFail();
 
-        // 🖼️ Collect all images (featured + gallery)
+        // 🖼️ Collect all product images
         $allImages = [];
 
         if (!empty($product->featured_image)) {
@@ -100,26 +95,22 @@ class ProductController extends Controller
             }
         }
 
-        if ($product->images && $product->images->count() > 0) {
-            $allImages = array_merge($allImages, $product->images->pluck('url')->toArray());
-        }
+        $allImages = array_unique(array_filter($allImages));
 
-        $allImages = array_unique($allImages);
+        // ✅ Paginate approved reviews
+        $reviews = Review::with('user')
+            ->where('product_id', $product->id)
+            ->where('is_approved', true)
+            ->orderBy('created_at', 'desc')
+            ->paginate(3);
 
-        // 🔁 Related Products
+        // ✅ Related products
         $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->where('is_active', true)
             ->latest()
             ->take(4)
             ->get();
-
-        // 🧩 Reviews (Approved only + Paginated)
-        $reviews = Review::with('user')
-            ->where('product_id', $product->id)
-            ->where('is_approved', true)
-            ->orderBy('created_at', 'desc')
-            ->paginate(5); // 5 reviews per page
 
         return view('products.show', compact('product', 'relatedProducts', 'allImages', 'reviews'));
     }
@@ -131,48 +122,70 @@ class ProductController extends Controller
      */
     public function storeReview(Request $req, $productId)
     {
-        $req->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'comment' => 'nullable|string|max:1000',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime|max:20480', // 20MB
-        ]);
-
         $product = Product::findOrFail($productId);
 
-        // ✅ Check if user already reviewed this product
-        $existing = Review::where('product_id', $productId)
-                          ->where('user_id', Auth::id())
-                          ->first();
-
-        if ($existing) {
+        // 🚫 Prevent duplicate reviews
+        if (Review::where('product_id', $productId)->where('user_id', auth()->id())->exists()) {
             return back()->with('error', 'You have already submitted a review for this product.');
         }
 
-        // 🧩 Create new review record
+        // 📝 Validate uploaded files
+        $req->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'comment' => 'nullable|string|max:1000',
+            'images' => 'nullable|array',
+            'images.*' => 'file|image|mimes:jpeg,jpg,png,webp|max:2048',
+            'video' => 'nullable|file|mimetypes:video/mp4,video/quicktime|max:10240',
+            'recorded_video_data' => 'nullable|string',
+        ]);
+
+        // 🧩 Create review
         $review = new Review();
-        $review->user_id = Auth::id();
+        $review->user_id = auth()->id();
         $review->product_id = $productId;
-        $review->rating = $req->rating;
+        $review->rating = (int) $req->rating;
         $review->comment = $req->comment ?? null;
-        $review->is_approved = false; // Wait for admin approval
+        $review->is_approved = false;
         $review->save();
 
-        // 🖼️ Handle multiple images upload
-        $paths = [];
+        // 🖼️ Handle multiple image uploads safely
         if ($req->hasFile('images')) {
-            foreach ($req->file('images') as $file) {
-                $paths[] = $file->store('reviews', 'public'); // Store in storage/app/public/reviews
+            $validImages = [];
+            foreach ($req->file('images') as $img) {
+                if ($img && $img->isValid()) {
+                    // ✅ Save to public disk
+                    $validImages[] = $img->store('reviews/images', 'public');
+                }
             }
-            $review->images = json_encode($paths); // ✅ Proper JSON encoding
+            if (!empty($validImages)) {
+                $review->images = json_encode($validImages, JSON_UNESCAPED_SLASHES);
+                $review->save();
+            }
+        }
+
+        // 🎞️ Normal video upload
+        if ($req->hasFile('video') && $req->file('video')->isValid()) {
+            $videoPath = $req->file('video')->store('reviews/videos', 'public');
+            $review->video_path = $videoPath;
             $review->save();
         }
 
-        // 🎥 Handle single video upload (WebRTC)
-        if ($req->hasFile('video')) {
-            $videoPath = $req->file('video')->store('review_videos', 'public');
-            $review->video_path = $videoPath;
-            $review->save();
+        // 🎬 Webcam-recorded video (base64)
+        if ($req->filled('recorded_video_data')) {
+            $data = $req->recorded_video_data;
+
+            if (preg_match('/^data:video\/(\w+);base64,/', $data, $type)) {
+                $videoData = substr($data, strpos($data, ',') + 1);
+                $videoData = base64_decode($videoData);
+
+                if ($videoData !== false) {
+                    $ext = strtolower($type[1]) ?? 'webm';
+                    $fileName = 'reviews/videos/' . uniqid() . '.' . $ext;
+                    Storage::disk('public')->put($fileName, $videoData);
+                    $review->video_path = $fileName;
+                    $review->save();
+                }
+            }
         }
 
         return back()->with('success', '✅ Your review has been submitted successfully and is awaiting admin approval.');
@@ -185,14 +198,19 @@ class ProductController extends Controller
      */
     public function search(Request $request)
     {
-        $query = $request->input('query');
+        $query = trim($request->input('query'));
+
+        if (empty($query)) {
+            return redirect()->route('products.index');
+        }
 
         $products = Product::where(function ($q) use ($query) {
-            $q->where('title', 'LIKE', "%{$query}%")
-              ->orWhere('description', 'LIKE', "%{$query}%");
-        })
-        ->where('is_active', true)
-        ->paginate(12);
+                $q->where('title', 'LIKE', "%{$query}%")
+                  ->orWhere('description', 'LIKE', "%{$query}%");
+            })
+            ->where('is_active', true)
+            ->paginate(12)
+            ->withQueryString();
 
         $categories = Category::where('is_active', true)
                               ->orderBy('name')

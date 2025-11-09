@@ -18,15 +18,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
     <!-- ✅ Font Awesome CDN -->
-    <link
+    <!-- <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
         integrity="sha512-0Zt1P4X8TRH2qW+4xvPGXyHWZC2kD3G3Yw+Gg7yja+dI0vL1rLzY6NfPyxv8aPLvVuQePejF1j4Z9xP+/o3rXg=="
         crossorigin="anonymous"
         referrerpolicy="no-referrer"
     />
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-somehash" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    Font Awesome
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-somehash" crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
 
     <style>
         body {

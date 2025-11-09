@@ -9,83 +9,67 @@ class Review extends Model
 {
     use HasFactory;
 
-    /**
-     * ✅ The attributes that are mass assignable.
-     */
     protected $fillable = [
         'user_id',
         'product_id',
         'rating',
         'comment',
         'images',
-        'video_path',   // 🎥 For WebRTC / Uploaded Video
+        'video_path',
         'is_approved',
     ];
 
-    /**
-     * ✅ Cast JSON & boolean fields automatically.
-     */
     protected $casts = [
         'images' => 'array',
         'is_approved' => 'boolean',
     ];
 
-    /**
-     * ✅ Relationship: Review belongs to a User.
-     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * ✅ Relationship: Review belongs to a Product.
-     */
     public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
     /**
-     * 🖼️ Accessor: Get full URLs for review images.
-     *
-     * Handles:
-     * - Local uploaded images (storage path)
-     * - External images (like Unsplash URLs)
-     * - Single string or JSON array
+     * ✅ Get clean URLs for images
      */
     public function getImagesAttribute($value)
     {
-        if (!$value) return [];
+        if (empty($value)) return [];
 
-        $decoded = json_decode($value, true);
+        // Decode JSON if stored as string
+        $images = is_array($value) ? $value : json_decode($value, true);
+        if (!is_array($images)) $images = [$value];
 
-        // ✅ If JSON array
-        if (is_array($decoded)) {
-            return array_map(function ($img) {
-                if (is_string($img) && (str_starts_with($img, 'http://') || str_starts_with($img, 'https://'))) {
-                    return $img; // Keep full URL (e.g., Unsplash)
-                }
-                return asset('storage/' . ltrim($img, '/')); // Local image path
-            }, $decoded);
-        }
+        // ✅ Return clean URLs
+        return array_map(function ($img) {
+            if (empty($img)) return null;
 
-        // ✅ If single string (not JSON)
-        if (is_string($value)) {
-            if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
-                return [$value]; // Full URL image
+            // If it's already a full URL, return as-is
+            if (str_starts_with($img, 'http://') || str_starts_with($img, 'https://')) {
+                return $img;
             }
-            return [asset('storage/' . ltrim($value, '/'))]; // Local single image
-        }
 
-        return [];
+            // Otherwise prepend storage path
+            return asset('storage/' . ltrim($img, '/'));
+        }, $images);
     }
 
     /**
-     * 🎬 Accessor: Get full URL for uploaded review video.
+     * ✅ Get clean URL for video
      */
     public function getVideoPathAttribute($value)
     {
-        return $value ? asset('storage/' . $value) : null;
+        if (empty($value)) return null;
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return $value;
+        }
+
+        return asset('storage/' . ltrim($value, '/'));
     }
 }

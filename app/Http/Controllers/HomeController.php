@@ -14,17 +14,17 @@ class HomeController extends Controller
         // ✅ Correct image paths (using /storage/images instead of /images)
         $sliderImages = [
             [
-                'url' => asset('storage/images/banner1.jpg'),
+                'url' => asset('storage/images/baaner3.jpg'),
                 'caption' => 'Upgrade Your Lifestyle',
                 'subtext' => 'Discover premium collections tailored just for you.',
             ],
             [
-                'url' => asset('storage/images/baaner2.jpg'),
+                'url' => asset('storage/images/banner2.jpg'),
                 'caption' => 'Exclusive Offers Await You',
                 'subtext' => 'Grab the best deals of the season before they’re gone!',
             ],
             [
-                'url' => asset('storage/images/baaner3.jpg'),
+                'url' => asset('storage/images/banner1.jpg'),
                 'caption' => 'Shop Smarter, Live Better',
                 'subtext' => 'Quality products, fast delivery, and secure checkout.',
             ],

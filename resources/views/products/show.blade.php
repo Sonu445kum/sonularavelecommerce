@@ -147,85 +147,71 @@
         </div>
     </div>
 
-    {{-- ⭐ Customer Reviews Section --}}
-    <hr class="my-5">
-    <div class="mt-4">
-        <h4 class="fw-bold mb-4">
-            <i class="bi bi-chat-left-text text-primary"></i> Customer Reviews
-        </h4>
+{{-- ⭐ Customer Reviews Section --}}
+<hr class="my-5">
+<div class="mt-4" id="customer-reviews">
 
-        @forelse($product->reviews->sortByDesc('created_at') as $review)
-            <div class="border rounded-4 p-4 mb-4 shadow-sm bg-white position-relative">
-                {{-- 👤 Reviewer Info --}}
-                <div class="d-flex align-items-center justify-content-between mb-2">
-                    <div>
-                        <h6 class="fw-bold mb-1 text-dark">
-                            <i class="bi bi-person-circle text-primary me-1"></i>
-                            {{ $review->user->name ?? 'Anonymous User' }}
-                        </h6>
-                        <div class="text-warning small">
-                            @for($i = 1; $i <= 5; $i++)
-                                @if($i <= $review->rating)
-                                    <i class="bi bi-star-fill"></i>
-                                @else
-                                    <i class="bi bi-star"></i>
-                                @endif
-                            @endfor
-                            <span class="ms-2 text-muted">({{ $review->rating }}/5)</span>
+
+    <h4 class="fw-bold mb-4">
+        <i class="bi bi-chat-left-text text-primary"></i> Customer Reviews
+    </h4>
+
+    @if($reviews->count() > 0)
+        <div class="row g-4">
+            @foreach($reviews as $review)
+                <div class="col-12 col-md-6 col-lg-4">
+                    <div class="border rounded-4 p-4 h-100 shadow-sm bg-white review-card">
+
+                        {{-- 👤 Reviewer Info --}}
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div>
+                                <h6 class="fw-bold mb-1 text-dark">
+                                    <i class="bi bi-person-circle text-primary me-1"></i>
+                                    {{ $review->user->name ?? 'Anonymous User' }}
+                                </h6>
+                                <div class="text-warning small">
+                                    @for($i = 1; $i <= 5; $i++)
+                                        @if($i <= $review->rating)
+                                            <i class="bi bi-star-fill"></i>
+                                        @else
+                                            <i class="bi bi-star"></i>
+                                        @endif
+                                    @endfor
+                                    <span class="ms-2 text-muted">({{ $review->rating }}/5)</span>
+                                </div>
+                            </div>
+                            <small class="text-muted">{{ $review->created_at->format('M d, Y') }}</small>
                         </div>
-                    </div>
-                    <small class="text-muted">
-                        {{ $review->created_at->format('M d, Y') }}
-                    </small>
-                </div>
 
-                {{-- ✍️ Comment --}}
-                @if(!empty($review->comment))
-                    <p class="text-secondary mb-2" style="font-size: 0.95rem;">
-                        {{ $review->comment }}
-                    </p>
-                @endif
+                        {{-- ✍️ Comment --}}
+                        @if(!empty($review->comment))
+                            <p class="text-secondary mb-2" style="font-size: 0.95rem;">
+                                {{ $review->comment }}
+                            </p>
+                        @endif
 
-{{-- 🖼️ Review Images --}}
+
+                        <!-- Reviews Images -->
 @php
     $reviewImages = [];
 
     if (!empty($review->images)) {
-        $reviewImages = is_string($review->images)
-            ? json_decode($review->images, true)
+        // $review->images already has full URLs (handled in model)
+        $reviewImages = is_array($review->images)
+            ? $review->images
             : (array) $review->images;
     }
 @endphp
 
 @if(!empty($reviewImages))
-    <div class="d-flex flex-wrap gap-2 mt-2">
-        @foreach($reviewImages as $img)
-            @php
-                // Clean up path
-                $cleanPath = ltrim($img, '/');
-
-                // If already starts with "storage/", use as is
-                if (str_starts_with($cleanPath, 'storage/')) {
-                    $publicPath = public_path($cleanPath);
-                    $imgUrl = asset($cleanPath);
-                } else {
-                    // Otherwise prepend "storage/"
-                    $publicPath = public_path('storage/' . $cleanPath);
-                    $imgUrl = asset('storage/' . $cleanPath);
-                }
-
-                // Fallback if file doesn't exist
-                if (!file_exists($publicPath)) {
-                    $imgUrl = asset('images/no-image.png');
-                }
-            @endphp
-
-            <a href="{{ $imgUrl }}" target="_blank">
-                <img src="{{ $imgUrl }}"
-                     alt="User Uploaded Review Photo"
-                     class="rounded border shadow-sm"
-                     style="width: 90px; height: 90px; object-fit: cover;">
-            </a>
+    <div class="d-flex flex-wrap gap-3">
+        @foreach($reviewImages as $imgUrl)
+            <img 
+                src="{{ $imgUrl }}" 
+                alt="{{ $review->user->name ?? 'Review Image' }}" 
+                class="img-fluid rounded border"
+                style="width: 100px; height: 100px; object-fit: cover; background: #f9f9f9;"
+            >
         @endforeach
     </div>
 @endif
@@ -236,110 +222,170 @@
 
 
 
-                {{-- 🎥 Review Video --}}
-                @if(!empty($review->video_path))
-                    @php
-                        $videoUrl = str_starts_with($review->video_path, 'http')
-                            ? $review->video_path
-                            : asset('storage/' . ltrim($review->video_path, '/'));
-                    @endphp
-                    <div class="mt-3">
-                        <video controls class="rounded shadow-sm w-100" style="max-width: 480px;">
-                            <source src="{{ $videoUrl }}" type="video/mp4">
-                            Your browser does not support HTML5 video.
-                        </video>
+
+
+
+
+
+
+
+
+
+                        {{-- 🎥 Review Video --}}
+                        @if(!empty($review->video_path))
+                            @php
+                                $videoFilename = basename($review->video_path);
+                                $storageVideoPath = 'reviews/videos/' . $videoFilename;
+                                $videoUrl = Storage::disk('public')->exists($storageVideoPath)
+                                    ? asset('storage/' . $storageVideoPath)
+                                    : $review->video_path;
+                            @endphp
+                            <div class="mt-3">
+                                <video controls class="rounded shadow-sm w-100" style="max-width: 100%;" preload="metadata">
+                                    <source src="{{ $videoUrl }}" type="video/{{ pathinfo($videoFilename, PATHINFO_EXTENSION) }}">
+                                    Your browser does not support HTML5 video.
+                                </video>
+                            </div>
+                        @endif
+
                     </div>
-                @endif
-            </div>
-        @empty
-            <div class="alert alert-light border text-center">
-                <p class="mb-0 text-muted">No reviews yet. Be the first to review this product!</p>
-            </div>
-        @endforelse
-    </div>
-    {{-- Pagination Links --}}
+                </div>
+            @endforeach
+        </div>
+
+        {{-- ✅ Pagination --}}
         <div class="mt-4 d-flex justify-content-center">
             {{ $reviews->links('vendor.pagination.bootstrap-5') }}
         </div>
-
-
-    {{-- 📝 Review Form (Auth Only) --}}
-    @auth
-        <div class="mt-5">
-            <h4 class="fw-bold mb-3"><i class="bi bi-star-half text-warning"></i> Write a Review</h4>
-            @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
-            @endif
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        @foreach ($errors->all() as $err)
-                            <li>{{ $err }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
-            <form action="{{ route('reviews.store', $product->id) }}" 
-                  method="POST" 
-                  enctype="multipart/form-data" 
-                  class="p-4 border rounded bg-light shadow-sm">
-
-                @csrf
-
-                {{-- ⭐ Star Rating --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Rating <span class="text-danger">*</span></label>
-                    <div class="star-rating d-flex flex-row-reverse justify-content-start">
-                        <input type="radio" name="rating" id="star5" value="5"><label for="star5">★</label>
-                        <input type="radio" name="rating" id="star4" value="4"><label for="star4">★</label>
-                        <input type="radio" name="rating" id="star3" value="3"><label for="star3">★</label>
-                        <input type="radio" name="rating" id="star2" value="2"><label for="star2">★</label>
-                        <input type="radio" name="rating" id="star1" value="1"><label for="star1">★</label>
-                    </div>
-                    <p id="rating-text" class="mt-2 fw-semibold text-primary"></p>
-                </div>
-
-                {{-- ✍️ Comment --}}
-                <div class="mb-3">
-                    <label for="comment" class="form-label fw-semibold">Your Review</label>
-                    <textarea name="comment" id="comment" rows="3" class="form-control" placeholder="Write your experience..."></textarea>
-                </div>
-
-               {{-- 🖼️ Upload Images (Drag & Drop) --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Upload Images (optional)</label>
-                    
-                    <div id="dropArea" class="border border-dashed p-4 text-center rounded cursor-pointer">
-                        <p class="text-muted">Drag & Drop Images or Click to Upload</p>
-                        <input type="file" name="images[]" id="images" multiple accept="image/*" class="d-none">
-                    </div>
-                    <div id="imagePreview" class="d-flex flex-wrap mt-2"></div>
-                </div>
-
-                {{-- 🎥 Upload or Record Video --}}
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Upload or Record Video (optional)</label>
-                    <div class="d-flex flex-column gap-2">
-                        <input type="file" name="video" id="video" class="form-control" accept="video/mp4,video/webm,video/ogg">
-
-                        <div class="d-flex gap-2">
-                            <button type="button" id="recordBtn" class="btn btn-outline-primary btn-sm">🎥 Start Recording</button>
-                            <button type="button" id="stopBtn" class="btn btn-outline-danger btn-sm d-none">⏹ Stop</button>
-                        </div>
-
-                        <video id="preview" class="mt-2 rounded shadow-sm d-none" width="320" height="240" controls></video>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn btn-success mt-3">Submit Review</button>
-            </form>
-        </div>
     @else
-        <p class="text-muted mt-3">
-            <a href="{{ route('login') }}" class="text-primary">Login</a> to post a review.
-        </p>
-    @endauth
+        <div class="alert alert-light border text-center">
+            <p class="mb-0 text-muted">No reviews yet. Be the first to review this product!</p>
+        </div>
+    @endif
+</div>
+
+{{-- 🔹 Lightbox Modal --}}
+<div class="modal fade" id="lightboxModal" tabindex="-1" aria-labelledby="lightboxModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0">
+            <div class="modal-body p-0 text-center">
+                <img id="lightboxImage" src="" class="img-fluid rounded" alt="Review Image">
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{-- 📝 Review Form --}}
+@auth
+<div class="mt-5">
+    <h4 class="fw-bold mb-4 text-light">
+        <i class="bi bi-star-half text-warning"></i> Write a Review
+    </h4>
+
+    {{-- ✅ Flash Messages --}}
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $err)
+                    <li>{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form method="POST" enctype="multipart/form-data"
+        action="{{ route('reviews.store', $product->id) }}"
+        class="review-form p-4 rounded-4 shadow-lg border-0"
+        style="background: linear-gradient(135deg, #1a1a2e, #16213e); color: #fff;">
+        @csrf
+
+        {{-- ⭐ Rating --}}
+        <div class="mb-4">
+            <label class="form-label fw-semibold text-white">Rating <span class="text-danger">*</span></label>
+            <div class="star-rating d-flex flex-row-reverse justify-content-start">
+                @for($i = 5; $i >= 1; $i--)
+                    <input type="radio" name="rating" id="star{{ $i }}" value="{{ $i }}">
+                    <label for="star{{ $i }}">★</label>
+                @endfor
+            </div>
+            <p id="rating-text" class="mt-2 fw-semibold text-warning"></p>
+        </div>
+
+        {{-- 💬 Review Comment --}}
+        <div class="mb-4">
+            <label for="comment" class="form-label fw-semibold ">Your Review</label>
+            <textarea name="comment" id="comment" rows="3" class="form-control bg-dark text-light border-0"
+                      placeholder="Write your experience..." style="resize:none;"></textarea>
+        </div>
+
+        {{-- 📸 Drag & Drop Multiple Images --}}
+        <div class="mb-4">
+            <label class="form-label fw-semibold text-white">Upload Images (Drag & Drop)</label>
+            <div id="dropArea" class="drop-zone text-center py-5 rounded-4 border-2 border-dashed border-light bg-dark"
+                 style="cursor:pointer;">
+                <i class="bi bi-cloud-upload display-5 text-light"></i>
+                <p class="mt-2 text-light">Drag & drop or click to select multiple images</p>
+                <input type="file" id="imageInput" name="images[]" multiple accept="image/jpeg,image/jpg,image/png,image/webp">
+            </div>
+            <div id="previewContainer" class="d-flex flex-wrap gap-3 mt-3"></div>
+        </div>
+
+        {{-- 🎥 Webcam Live Video Recording --}}
+        <div class="mb-4 text-center">
+            <label class="form-label fw-semibold text-white">Record Video (optional)</label><br>
+
+            <video id="livePreview" autoplay muted playsinline
+                class="rounded-3 border border-light mb-2"
+                width="320" height="240" style="display:none;">
+            </video>
+
+            <video id="recordingPreview" controls
+                class="rounded-3 border border-light mb-2"
+                width="320" height="240" style="display:none;">
+            </video>
+
+            <div class="d-flex justify-content-center gap-2 mt-2">
+                <button type="button" id="startRecording" class="btn btn-outline-success btn-sm">
+                    Start Recording
+                </button>
+                <button type="button" id="stopRecording" class="btn btn-outline-danger btn-sm" disabled>
+                    Stop Recording
+                </button>
+            </div>
+
+            <input type="hidden" name="recorded_video_data" id="recordedVideoData">
+        </div>
+
+        {{-- 🎞️ Normal Video Upload --}}
+        <div class="mb-4">
+            <label class="form-label fw-semibold text-white">Upload Video (optional)</label>
+            <input type="file" name="video" accept="video/mp4,video/quicktime"
+                class="form-control bg-dark text-light border-0" id="videoUploadInput">
+        </div>
+
+        {{-- ✅ Submit --}}
+        <button type="submit" class="btn btn-light px-4 py-2 fw-semibold shadow-sm">
+            Submit Review
+        </button>
+    </form>
+</div>
+@else
+<p class="text-muted mt-3">
+    <a href="{{ route('login') }}" class="text-primary">Login</a> to post a review.
+</p>
+@endauth
+
+</div>
 
     {{-- 🛍️ Related Products --}}
     @if(isset($relatedProducts) && $relatedProducts->count() > 0)
@@ -368,18 +414,99 @@
 </div>
 
 <style>
-/* ⭐ Star Rating */
+/* Review Card Hover */
+.review-card {
+    transition: all 0.25s ease;
+}
+.review-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Review Form */
+.review-form {
+    background: linear-gradient(135deg, #f0f6ff, #e8f0ff);
+    color: #d6d62fff;
+    transition: 0.3s;
+    border-radius: 12px;
+}
+.review-form:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+/* Star Rating */
 .star-rating {
     display: inline-flex;
     flex-direction: row-reverse;
     font-size: 1.8rem;
     cursor: pointer;
 }
-.star-rating input { display: none; }
-.star-rating label { color: #ccc; transition: color 0.2s; cursor: pointer; }
+.star-rating input {
+    display: none;
+}
+.star-rating label {
+    color: #ccc;
+    transition: color 0.2s;
+    cursor: pointer;
+}
 .star-rating input:checked ~ label,
 .star-rating label:hover,
-.star-rating label:hover ~ label { color: #ffc107; }
+.star-rating label:hover ~ label {
+    color: #ffb400;
+}
+
+/* Rating text */
+#rating-text {
+    margin-top: 8px;
+    font-weight: 600;
+    color: #ffb400;
+}
+
+/* Drag & Drop */
+.drop-zone {
+    border: 2px dashed #ddd;
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.drop-zone:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: #fff;
+}
+
+/* Image Previews */
+.preview-image {
+    position: relative;
+    width: 110px;
+    height: 110px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.preview-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.remove-btn {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: rgba(255,0,0,0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1;
+}
+.remove-btn:hover {
+    background: rgba(255,0,0,1);
+}
 
 /* Customer Review Cards */
 #customer-reviews .border { border: 1px solid #e5e7eb !important; }
@@ -387,196 +514,193 @@
 #customer-reviews video { border: 1px solid #dee2e6; }
 #customer-reviews img:hover { transform: scale(1.05); transition: 0.3s ease-in-out; }
 
-
-#dropArea {
-    border: 2px dashed #ccc;
-    border-radius: 10px;
-    padding: 20px;
-    text-align: center;
-    transition: background 0.2s, border-color 0.2s;
-}
-
-#dropArea.border-primary {
-    border-color: #0d6efd !important;
-}
-
-#dropArea.bg-light {
-    background-color: #f8f9fa;
-}
-
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener("DOMContentLoaded", () => {
+    // ⭐ STAR RATING LOGIC
+    const ratingInputs = document.querySelectorAll(".star-rating input");
+    const ratingText = document.getElementById("rating-text");
 
-    // =============================
-    // ⭐ Star Rating Display
-    // =============================
-    const stars = document.querySelectorAll('.star-rating input');
-    const ratingText = document.getElementById('rating-text');
-    const ratingLabels = {
-        1: "Very Bad 😞",
-        2: "Bad 😕",
-        3: "Average 🙂",
-        4: "Good 😄",
-        5: "Excellent 🤩"
+    const messages = {
+        1: "Very Poor 😞",
+        2: "Needs Improvement 😐",
+        3: "Good 🙂",
+        4: "Very Good 😄",
+        5: "Excellent 🤩",
     };
 
-    stars.forEach(star => {
-        star.addEventListener('change', () => {
-            ratingText.textContent = ratingLabels[star.value];
+    ratingInputs.forEach(input => {
+        input.addEventListener("change", e => {
+            ratingText.textContent = messages[e.target.value] || "";
         });
     });
 
-    // =============================
-// ⭐ Image Drag & Drop + Preview
-// =============================
-const dropArea = document.getElementById('dropArea');
-const imageInput = document.getElementById('images');
-const previewContainer = document.getElementById('imagePreview');
+    // Drag and Drop Logic
+    const dropArea = document.getElementById("dropArea");
+    const imageInput = document.getElementById("imageInput");
+    const previewContainer = document.getElementById("previewContainer");
 
-if (dropArea && imageInput && previewContainer) {
+    let dt = new DataTransfer();
 
-    // 🖱️ Click to open file dialog
-    dropArea.addEventListener('click', () => imageInput.click());
-
-    // 📂 Manual select
-    imageInput.addEventListener('change', () => handleFiles(imageInput.files));
-
-    // 🎯 Highlight on drag
-    ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, e => {
+    ["dragenter","dragover"].forEach(event => {
+        dropArea.addEventListener(event, e => {
             e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.add('border-primary', 'bg-light');
+            dropArea.classList.add("border-warning");
         });
     });
 
-    // ❌ Remove highlight
-    ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, e => {
+    ["dragleave","drop"].forEach(event => {
+        dropArea.addEventListener(event, e => {
             e.preventDefault();
-            e.stopPropagation();
-            dropArea.classList.remove('border-primary', 'bg-light');
+            dropArea.classList.remove("border-warning");
         });
     });
 
-    // 📥 Handle file drop
-    dropArea.addEventListener('drop', e => {
+    dropArea.addEventListener("drop", e => {
         e.preventDefault();
-        e.stopPropagation();
-        const files = e.dataTransfer.files;
-        handleFiles(files);
+        handleFiles(Array.from(e.dataTransfer.files));
     });
 
-    // 🖼️ Handle and Preview Files
-    function handleFiles(files) {
-        previewContainer.innerHTML = '';
+    dropArea.addEventListener("click", () => imageInput.click());
+    imageInput.addEventListener("change", e => handleFiles(Array.from(e.target.files)));
 
-        // ✅ Extended file types (fix)
-        const allowedTypes = [
-            'image/jpeg',
-            'image/jpg',
-            'image/png',
-            'image/webp',
-            'image/pjpeg',
-            'image/jfif'
-        ];
+    function handleFiles(newFiles) {
+        newFiles.forEach(file => {
+            if (!file.type.startsWith("image/")) {
+                alert(`${file.name} is not a valid image file.`);
+                return;
+            }
 
-        const validFiles = [];
-
-        Array.from(files).forEach(file => {
-            if (!allowedTypes.includes(file.type)) return; // skip invalid
-            validFiles.push(file);
+            dt.items.add(file);
 
             const reader = new FileReader();
             reader.onload = e => {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.classList.add('rounded', 'border', 'shadow-sm', 'm-1');
-                img.style.width = '90px';
-                img.style.height = '90px';
-                img.style.objectFit = 'cover';
-                img.title = file.name;
-                previewContainer.appendChild(img);
+                const div = document.createElement("div");
+                div.className = "position-relative d-inline-block m-2";
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="rounded-3 border border-light shadow-sm" width="100" height="100" style="object-fit:cover;">
+                    <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-1 remove-btn">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                `;
+
+                div.querySelector(".remove-btn").addEventListener("click", () => {
+                    div.remove();
+                    const updatedDt = new DataTransfer();
+                    Array.from(dt.files)
+                        .filter(f => f.name !== file.name)
+                        .forEach(f => updatedDt.items.add(f));
+                    dt = updatedDt;
+                    imageInput.files = dt.files;
+                });
+
+                previewContainer.appendChild(div);
             };
             reader.readAsDataURL(file);
         });
 
-        // ✅ Assign selected files back to input
-        setTimeout(() => {
-            const dt = new DataTransfer();
-            validFiles.forEach(f => dt.items.add(f));
-            imageInput.files = dt.files;
-        }, 100);
+        // ✅ Update input files once after all valid images
+        imageInput.files = dt.files;
     }
+
+    // 🎬 Live Webcam Recording
+    const startRecBtn = document.getElementById("startRecording");
+    const stopRecBtn = document.getElementById("stopRecording");
+    const livePreview = document.getElementById("livePreview");
+    const recordingPreview = document.getElementById("recordingPreview");
+    const recordedVideoData = document.getElementById("recordedVideoData");
+
+    let mediaRecorder, recordedChunks = [];
+
+    startRecBtn.addEventListener("click", async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video:true, audio:true });
+            livePreview.srcObject = stream;
+            livePreview.style.display = "block";
+            recordingPreview.style.display = "none";
+
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                if(event.data.size>0) recordedChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, {type:"video/webm"});
+                recordingPreview.src = URL.createObjectURL(blob);
+                recordingPreview.style.display = "block";
+                livePreview.style.display = "none";
+
+                // Convert to Base64
+                const reader = new FileReader();
+                reader.onloadend = () => recordedVideoData.value = reader.result;
+                reader.readAsDataURL(blob);
+            };
+
+            mediaRecorder.start();
+            startRecBtn.disabled = true;
+            stopRecBtn.disabled = false;
+        } catch(err) {
+            alert("Camera or microphone access denied!");
+        }
+    });
+
+    stopRecBtn.addEventListener("click", () => {
+        if(mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+            if(livePreview.srcObject) {
+                livePreview.srcObject.getTracks().forEach(track => track.stop());
+            }
+            startRecBtn.disabled = false;
+            stopRecBtn.disabled = true;
+        }
+    });
+
+    // ✅ Stop webcam on page unload
+    window.addEventListener("beforeunload", () => {
+        if(livePreview.srcObject) {
+            livePreview.srcObject.getTracks().forEach(track => track.stop());
+        }
+    });
+
+    function openLightbox(url) {
+    const img = document.getElementById('lightboxImage');
+    img.src = url;
+
+
+
+   
+    
 }
 
-    // =============================
-    // ⭐ Thumbnail Switch (Optional)
-    // =============================
-    window.changeMainImage = function (src) {
-        const mainImage = document.getElementById('mainImage');
-        if (mainImage) {
-            mainImage.style.opacity = 0;
-            setTimeout(() => {
-                mainImage.src = src;
-                mainImage.style.opacity = 1;
-            }, 150);
-        }
-    };
-
-    // =============================
-    // 🎥 Webcam Recording
-    // =============================
-    const recordBtn = document.getElementById('recordBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const videoPreview = document.getElementById('preview');
-    let mediaRecorder, chunks = [];
-
-    if (recordBtn && stopBtn && videoPreview) {
-        recordBtn.addEventListener('click', async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                videoPreview.srcObject = stream;
-                videoPreview.classList.remove('d-none');
-                videoPreview.play();
-
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.start();
-                chunks = [];
-
-                recordBtn.classList.add('d-none');
-                stopBtn.classList.remove('d-none');
-
-                mediaRecorder.ondataavailable = e => chunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(chunks, { type: 'video/webm' });
-                    const file = new File([blob], 'recorded_video.webm', { type: 'video/webm' });
-                    const dt = new DataTransfer();
-                    dt.items.add(file);
-                    document.getElementById('video').files = dt.files;
-
-                    stream.getTracks().forEach(track => track.stop());
-                    videoPreview.srcObject = null;
-                    videoPreview.src = URL.createObjectURL(blob);
-                    videoPreview.load();
-                };
-            } catch (error) {
-                alert('⚠️ Camera access denied or not supported!');
-            }
-        });
-
-        stopBtn.addEventListener('click', () => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                mediaRecorder.stop();
-                recordBtn.classList.remove('d-none');
-                stopBtn.classList.add('d-none');
-            }
-        });
+ function openLightbox(url) {
+        const img = document.getElementById('lightboxImage');
+        img.src = url;
     }
 
+    // ✅ Related Images - Flipkart Style Gallery
+    window.changeMainImage = function (newSrc, thumbEl) {
+        const mainImage = document.getElementById('mainImage');
+        
+        // Smooth fade animation
+        mainImage.style.opacity = 0;
+
+        setTimeout(() => {
+            mainImage.src = newSrc;
+            mainImage.style.opacity = 1;
+        }, 200);
+
+        // Highlight selected thumbnail
+        document.querySelectorAll('.gallery-thumb').forEach(img => {
+            img.classList.remove('border-primary');
+        });
+        thumbEl.classList.add('border-primary');
+    };
 });
+
+
 </script>
 
 
