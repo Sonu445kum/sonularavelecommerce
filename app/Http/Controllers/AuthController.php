@@ -33,12 +33,21 @@ class AuthController extends Controller
             'password' => 'required|confirmed|min:6',
         ]);
 
+        // User::create([
+        //     'name' => $data['name'],
+        //     'email' => $data['email'],
+        //     'password' => $data['password'], // auto-hashed by model
+        //     'is_active' => true,
+        // ]);
+
+        // Hash password
         User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => $data['password'], // auto-hashed by model
-            'is_active' => true,
-        ]);
+        'name' => $data['name'],
+        'email' => $data['email'],
+        'password' => Hash::make($data['password']), // ✅ hashed
+        'is_active' => true,
+    ]);
+
 
         Alert::success('Success 🎉', 'Registration successful! Please log in to continue.');
 
@@ -52,35 +61,48 @@ class AuthController extends Controller
     }
 
     // 🔑 Handle Login
-    public function login(Request $req)
-    {
-        $req->validate([
-            'email' => 'required|email',
-            'password' => 'required|string|min:6',
-        ]);
+   public function login(Request $req)
+{
+    // ✅ Validate login inputs
+    $req->validate([
+        'email' => 'required|email',
+        'password' => 'required|string|min:6',
+    ]);
 
-        $credentials = $req->only('email', 'password');
-        $user = User::where('email', $credentials['email'])->first();
+    $credentials = $req->only('email', 'password');
 
-        if (!$user) {
-            Alert::error('Error ❌', 'No account found with that email.');
-            return back();
-        }
-
-        if (isset($user->is_active) && !$user->is_active) {
-            Alert::warning('Account Inactive ⚠️', 'Please contact support.');
-            return back();
-        }
-
-        if (Auth::attempt($credentials, $req->boolean('remember'))) {
-            $req->session()->regenerate();
-            Alert::success('Welcome Back 👋', 'Hello, ' . Auth::user()->name . '!');
-            return redirect()->intended(route('home'));
-        }
-
-        Alert::error('Invalid Credentials', 'Please try again.');
-        return back();
+    // ✅ Check if user exists
+    $user = User::where('email', $credentials['email'])->first();
+    if (!$user) {
+        Alert::error('Error ❌', 'No account found with that email.');
+        return back()->withInput($req->only('email'));
     }
+
+    // ✅ Check if user is active
+    if (isset($user->is_active) && !$user->is_active) {
+        Alert::warning('Account Inactive ⚠️', 'Please contact support.');
+        return back()->withInput($req->only('email'));
+    }
+
+    // ✅ Attempt login
+    if (Auth::attempt($credentials, $req->boolean('remember'))) {
+        // Regenerate session to prevent session fixation
+        $req->session()->regenerate();
+
+        // Clear intended URL if any
+        $req->session()->forget('url.intended');
+
+        // Success message
+        Alert::success('Welcome Back 👋', 'Hello, ' . Auth::user()->name . '!');
+
+        // Redirect to intended page or home
+        return redirect()->intended(route('home'));
+    }
+
+    // ❌ Invalid credentials
+    Alert::error('Invalid Credentials', 'Please try again.');
+    return back()->withInput($req->only('email'));
+}
 
     /* ===========================
      🔁 PASSWORD RESET SECTION
@@ -151,7 +173,7 @@ class AuthController extends Controller
         $req->session()->regenerateToken();
 
         Alert::info('Logged Out 👋', 'You have logged out successfully!');
-        return redirect()->route('home');
+        return redirect()->intended(route('home'));
     }
 
     /* ===========================
