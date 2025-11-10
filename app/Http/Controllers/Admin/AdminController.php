@@ -26,6 +26,7 @@ class AdminController extends Controller
     public function dashboard()
     {
         // 🔢 Stats
+        // ==================== Add this ====================
         $totalProducts = Product::count();
         $totalOrders = Order::count();
         $totalCategories = Category::count();
@@ -71,7 +72,7 @@ class AdminController extends Controller
             'recentUsers',
             'recentPayments',
             'notifications',
-            'unreadCount'
+            'unreadCount',
         ));
     }
 
