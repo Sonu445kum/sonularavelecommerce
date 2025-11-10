@@ -30,7 +30,26 @@ class AdminOrderController extends Controller
      */
     public function adminShow($id)
     {
-        $order = Order::with(['user', 'orderItems.product'])->findOrFail($id);
+        $order = Order::with(['user', 'orderItems.product', 'address'])->findOrFail($id);
+
+        // 🔹 Pre-calculate each item's subtotal
+        $orderSubtotal = 0;
+        foreach ($order->orderItems as $item) {
+            $itemPrice = $item->price ?? ($item->product->price ?? 0);
+            $item->calculated_subtotal = $itemPrice * $item->quantity;
+            $orderSubtotal += $item->calculated_subtotal;
+        }
+
+        // 🔹 Calculate order totals
+        $order->calculated_subtotal = $orderSubtotal;
+        $order->calculated_shipping = $order->shipping ?? 0;
+        $order->calculated_tax = $order->tax ?? 0;
+        $order->calculated_discount = $order->discount ?? 0;
+        $order->calculated_total = $orderSubtotal + $order->calculated_shipping + $order->calculated_tax - $order->calculated_discount;
+
+        // 🔹 Get shipping info using accessor (either address relation or shipping_address array)
+        $order->shipping_info = $order->shipping_info;
+
         return view('admin.orders.show', compact('order'));
     }
 

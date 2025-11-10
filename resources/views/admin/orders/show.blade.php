@@ -23,29 +23,29 @@
                     {{ ucfirst($order->status) }}
                 </span>
             </p>
-            <p><strong>Payment Method:</strong> {{ ucfirst($order->payment_method) }}</p>
+            <p><strong>Payment Method:</strong> {{ ucfirst($order->payment_method ?? 'N/A') }}</p>
             <p><strong>Payment Status:</strong> {{ ucfirst($order->payment_status ?? 'N/A') }}</p>
             <p><strong>Order Date:</strong> {{ $order->created_at->format('d M Y, h:i A') }}</p>
         </div>
     </div>
 
-  {{-- Shipping Address --}}
-<div class="card mb-4 shadow-sm">
-    <div class="card-body">
-        <h5 class="card-title">Shipping Address</h5>
-        @if($order->address)
-            <p>
-                <strong>{{ $order->address->name ?? 'N/A' }}</strong><br>
-                {{ $order->address->address ?? '' }}<br>
-                {{ $order->address->city ?? '' }}, {{ $order->address->state ?? '' }} - {{ $order->address->pincode ?? '' }}<br>
-                {{ $order->address->country ?? '' }}<br>
-                <strong>Phone:</strong> {{ $order->address->phone ?? 'N/A' }}
-            </p>
-        @else
-            <p class="text-muted">No shipping address provided.</p>
-        @endif
-    </div>
-</div>
+  @php
+    $shipping = $order->shipping_info;
+@endphp
+
+@if($shipping)
+    <p>
+        <strong>{{ $shipping->name ?? 'N/A' }}</strong><br>
+        {{ $shipping->address_line ?? '' }}<br>
+        {{ $shipping->city ?? '' }} - {{ $shipping->postalcode ?? '' }}<br>
+        <strong>Phone:</strong> {{ $shipping->phone ?? 'N/A' }}<br>
+        <strong>Label:</strong> {{ $shipping->label ?? 'N/A' }}
+    </p>
+@else
+    <p class="text-muted">No shipping address provided.</p>
+@endif
+
+
 
 
 
@@ -54,8 +54,8 @@
         <div class="card-body">
             <h5 class="card-title">Items in this Order</h5>
 
-            <table class="table table-bordered">
-                <thead>
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
                     <tr>
                         <th>#</th>
                         <th>Product</th>
@@ -66,23 +66,27 @@
                 </thead>
                 <tbody>
                     @foreach($order->orderItems as $index => $item)
+                        @php 
+                            $itemPrice = $item->price ?? ($item->product->price ?? 0);
+                        @endphp
                         <tr>
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}</td>
-                            <td>₹{{ number_format($item->price, 2) }}</td>
+                            <td>₹{{ number_format($itemPrice, 2) }}</td>
                             <td>{{ $item->quantity }}</td>
-                            <td>₹{{ number_format($item->price * $item->quantity, 2) }}</td>
+                            <td>₹{{ number_format($item->calculated_subtotal ?? ($itemPrice * $item->quantity), 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
 
+            {{-- Totals --}}
             <div class="text-end mt-3">
-                <h5><strong>Subtotal:</strong> ₹{{ number_format($order->subtotal ?? 0, 2) }}</h5>
-                <h5><strong>Shipping:</strong> ₹{{ number_format($order->shipping ?? 0, 2) }}</h5>
-                <h5><strong>Tax:</strong> ₹{{ number_format($order->tax ?? 0, 2) }}</h5>
-                <h5><strong>Discount:</strong> ₹{{ number_format($order->discount ?? 0, 2) }}</h5>
-                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->total, 2) }}</h4>
+                <h5><strong>Subtotal:</strong> ₹{{ number_format($order->calculated_subtotal ?? 0, 2) }}</h5>
+                <h5><strong>Shipping:</strong> ₹{{ number_format($order->calculated_shipping ?? 0, 2) }}</h5>
+                <h5><strong>Tax:</strong> ₹{{ number_format($order->calculated_tax ?? 0, 2) }}</h5>
+                <h5><strong>Discount:</strong> -₹{{ number_format($order->calculated_discount ?? 0, 2) }}</h5>
+                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->calculated_total ?? 0, 2) }}</h4>
             </div>
         </div>
     </div>
@@ -97,12 +101,11 @@
                 <div class="row align-items-center">
                     <div class="col-md-4">
                         <select name="status" class="form-select" required>
-                            <option value="pending" {{ strtolower($order->status) == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="processing" {{ strtolower($order->status) == 'processing' ? 'selected' : '' }}>Processing</option>
-                            <option value="shipped" {{ strtolower($order->status) == 'shipped' ? 'selected' : '' }}>Shipped</option>
-                            <option value="delivered" {{ strtolower($order->status) == 'delivered' ? 'selected' : '' }}>Delivered</option>
-                            <option value="cancelled" {{ strtolower($order->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                            <option value="refunded" {{ strtolower($order->status) == 'refunded' ? 'selected' : '' }}>Refunded</option>
+                            @foreach(['pending','processing','shipped','delivered','cancelled','refunded'] as $status)
+                                <option value="{{ $status }}" {{ strtolower($order->status) == $status ? 'selected' : '' }}>
+                                    {{ ucfirst($status) }}
+                                </option>
+                            @endforeach
                         </select>
                     </div>
                     <div class="col-md-4">

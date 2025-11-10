@@ -10,17 +10,12 @@ class Order extends Model
 {
     use HasFactory;
 
-    /**
-     * -------------------------------------------------
-     * Mass assignable fields
-     * -------------------------------------------------
-     */
     protected $fillable = [
         'uuid',
         'order_number',
         'user_id',
         'address_id',
-        'shipping_address', // ✅ Added for checkout address storage
+        'shipping_address', // ✅ Stored as JSON
         'subtotal',
         'shipping',
         'tax',
@@ -31,14 +26,9 @@ class Order extends Model
         'meta',
     ];
 
-    /**
-     * -------------------------------------------------
-     * Cast attributes to native types
-     * -------------------------------------------------
-     */
     protected $casts = [
         'meta'              => 'array',
-        'shipping_address'  => 'array', // ✅ Important fix
+        'shipping_address'  => 'array', 
         'subtotal'          => 'decimal:2',
         'shipping'          => 'decimal:2',
         'tax'               => 'decimal:2',
@@ -46,117 +36,86 @@ class Order extends Model
         'total'             => 'decimal:2',
     ];
 
-    /**
-     * -------------------------------------------------
-     * Booted: Auto-generate UUID, Order Number & Total
-     * -------------------------------------------------
-     */
     protected static function booted()
     {
         parent::booted();
 
         static::creating(function ($order) {
-            // 🔹 Auto-generate UUID
             if (empty($order->uuid)) {
                 $order->uuid = (string) Str::uuid();
             }
-
-            // 🔹 Auto-generate unique order number
             if (empty($order->order_number)) {
                 $order->order_number = 'ORD-' . strtoupper(uniqid());
             }
-
-            // 🔹 Auto-calculate total
             if (empty($order->total)) {
                 $order->total = ($order->subtotal ?? 0)
                               + ($order->shipping ?? 0)
                               + ($order->tax ?? 0)
                               - ($order->discount ?? 0);
             }
-
-            // 🔹 Default status
             if (empty($order->status)) {
                 $order->status = 'Pending';
             }
         });
     }
 
-    /**
-     * -------------------------------------------------
-     * Relationships
-     * -------------------------------------------------
-     */
+    // --------------------------
+    // Relationships
+    // --------------------------
 
-    // 🔹 Belongs to one user
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // 🔹 Optional: belongs to Address model (if used)
     public function address()
     {
-        return $this->belongsTo(Address::class, 'address_id');
-    }
-
-    // 🔹 Has many items
-    public function items()
-    {
-        return $this->hasMany(OrderItem::class);
+        // Returns Address model if address_id exists
+        return $this->belongsTo(\App\Models\Address::class, 'address_id');
     }
 
     public function orderItems()
     {
-        return $this->hasMany(\App\Models\OrderItem::class, 'order_id');
+        return $this->hasMany(OrderItem::class, 'order_id');
     }
 
-    // 🔹 Has many payments
     public function payments()
     {
         return $this->hasMany(Payment::class);
     }
 
-    // 🔹 Latest successful payment
     public function latestPayment()
     {
         return $this->hasOne(Payment::class)->latestOfMany();
     }
 
-    /**
-     * -------------------------------------------------
-     * Accessors / Helper Methods
-     * -------------------------------------------------
-     */
+    // --------------------------
+    // Helper Methods
+    // --------------------------
 
-    // 🔹 Get formatted total
     public function getFormattedTotalAttribute(): string
     {
         return number_format($this->total, 2);
     }
 
-    // 🔹 Dynamically compute total
     public function getComputedTotalAttribute(): float
     {
         return (float) ($this->subtotal + $this->shipping + $this->tax - $this->discount);
     }
 
-    // 🔹 Check if delivered
     public function isDelivered(): bool
     {
         return strtolower($this->status) === 'delivered';
     }
 
-    // 🔹 Check if payment is successful
     public function isPaid(): bool
     {
         return $this->payments()->where('status', 'success')->exists();
     }
 
-    /**
-     * -------------------------------------------------
-     * Query Scopes
-     * -------------------------------------------------
-     */
+    // --------------------------
+    // Query Scopes
+    // --------------------------
     public function scopeOfUser($query, $userId)
     {
         return $query->where('user_id', $userId);
@@ -175,5 +134,19 @@ class Order extends Model
     public function scopeRevenue($query)
     {
         return $query->where('status', 'delivered')->sum('total');
+    }
+
+    // --------------------------
+    // Get shipping info for blade
+    // --------------------------
+    public function getShippingInfoAttribute()
+    {
+        // If address_id exists, return related Address
+        if ($this->address) {
+            return $this->address;
+        }
+
+        // Otherwise, return array from checkout as object
+        return $this->shipping_address ? (object) $this->shipping_address : null;
     }
 }
