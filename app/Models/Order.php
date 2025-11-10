@@ -73,6 +73,11 @@ class Order extends Model
         // Returns Address model if address_id exists
         return $this->belongsTo(\App\Models\Address::class, 'address_id');
     }
+    // ✅ Relationship to order items
+    public function items()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
     public function orderItems()
     {

@@ -1,116 +1,123 @@
 @extends('layouts.app')
 
-@section('title', 'Order Details')
+@section('title', 'Checkout')
 
 @section('content')
 <div class="container my-5">
 
-    {{-- 🧭 Breadcrumb --}}
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('orders.index') }}">My Orders</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Order #{{ $order->id }}</li>
-        </ol>
-    </nav>
+    <h2 class="mb-4 fw-bold">Checkout</h2>
 
-    {{-- 🧾 Order Summary --}}
-    <div class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
-            <div>
-                <h4 class="fw-bold mb-1">Order #{{ $order->id }}</h4>
-                <p class="mb-0 text-muted">Placed on {{ $order->created_at->format('d M Y, h:i A') }}</p>
-            </div>
-            <span class="badge bg-{{ $order->status === 'delivered' ? 'success' : ($order->status === 'pending' ? 'warning' : 'secondary') }} fs-6">
-                {{ ucfirst($order->status) }}
-            </span>
+    {{-- ❌ Show errors --}}
+    @if($errors->any())
+        <div class="alert alert-danger">
+            @foreach($errors->all() as $error) <div>{{ $error }}</div> @endforeach
         </div>
-    </div>
+    @endif
+
+    {{-- ✅ Success message --}}
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     <div class="row g-4">
 
-        {{-- 📦 Ordered Items --}}
-        <div class="col-lg-8">
-            <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-light fw-bold fs-5">Ordered Items</div>
-                <div class="card-body">
+       {{-- 📦 Cart Items --}}
+<div class="col-lg-7">
+    <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-light fw-bold fs-5">Your Cart</div>
+        <div class="card-body">
 
-                    @foreach ($order->orderItems as $item)
-                        @php
-                            $product = $item->product;
-                            $image = $product->productImages->first()->image_path ?? 'images/no-image.png';
-                        @endphp
+            @if(isset($cartItems) && $cartItems->isNotEmpty())
+                @foreach ($cartItems as $item)
+                    @php
+                        $product = $item->product ?? null;
+                        $image = $product && $product->images && $product->images->first()
+                            ? $product->images->first()->path
+                            : 'images/no-image.png';
+                    @endphp
 
-                        <div class="d-flex align-items-center mb-4 border-bottom pb-3">
-                            <img src="{{ asset($image) }}" class="rounded-3 me-3"
-                                 style="width: 90px; height: 90px; object-fit: cover;" alt="{{ $product->title }}">
-                            <div class="flex-grow-1">
-                                <h6 class="fw-semibold mb-1">{{ $product->title }}</h6>
-                                <p class="text-muted mb-1">Qty: {{ $item->quantity }}</p>
-                                <p class="fw-bold mb-0">₹{{ number_format($item->price * $item->quantity, 2) }}</p>
-                            </div>
+                    <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+                        <img src="{{ asset($image) }}" 
+                             class="rounded-3 me-3" 
+                             style="width: 70px; height: 70px; object-fit: cover;" 
+                             alt="{{ $product->title ?? 'Product' }}">
+                        <div class="flex-grow-1">
+                            <h6 class="fw-semibold mb-1">{{ $product->title ?? 'Product Name' }}</h6>
+                            <p class="text-muted mb-1">Qty: {{ $item->quantity ?? 1 }}</p>
+                            <p class="fw-bold mb-0">₹{{ number_format(($item->price ?? 0) * ($item->quantity ?? 1), 2) }}</p>
                         </div>
-                    @endforeach
-
-                    <div class="text-end fw-bold fs-5 mt-3">
-                        Total: ₹{{ number_format($order->total_amount, 2) }}
                     </div>
+                @endforeach
+
+                <div class="text-end fw-bold fs-5 mt-3">
+                    Subtotal: ₹{{ number_format($cartItems->sum(fn($it) => ($it->price ?? 0) * ($it->quantity ?? 1)), 2) }}
                 </div>
-            </div>
+            @else
+                <p class="text-muted text-center mb-0">Your cart is empty.</p>
+            @endif
+
         </div>
+    </div>
+</div>
 
-        {{-- 📬 Shipping & Payment Info --}}
-        <div class="col-lg-4">
-            <div class="row g-3">
+        {{-- 🏠 Shipping & Payment --}}
+        <div class="col-lg-5">
+            <form action="{{ route('checkout.process') }}" method="POST" class="card border-0 shadow-sm rounded-4 p-4">
+                @csrf
 
-                {{-- 🏠 Shipping Address --}}
-                <div class="col-md-12">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-header bg-light fw-bold fs-5">Shipping Address</div>
-                        <div class="card-body">
-                            @php
-                                $shipping = is_array($order->shipping_address)
-                                    ? (object) $order->shipping_address
-                                    : (is_string($order->shipping_address)
-                                        ? json_decode($order->shipping_address)
-                                        : $order->shipping_address);
-                            @endphp
+                <h5 class="mb-3 fw-bold">Shipping Details</h5>
 
-                            <p class="fw-semibold mb-1">{{ $shipping->name ?? $order->user->name ?? 'N/A' }}</p>
-                            <p class="mb-1">Email: {{ $shipping->email ?? $order->user->email ?? 'N/A' }}</p>
-                            <p class="mb-1">Phone: {{ $shipping->phone ?? 'N/A' }}</p>
-                            <p class="mb-1">Pincode: {{ $shipping->pincode ?? 'N/A' }}</p>
-                            <p class="mb-0">Address: {{ $shipping->address ?? 'N/A' }}</p>
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ old('name', auth()->user()->name ?? '') }}" required>
                 </div>
 
-                {{-- 💳 Payment Summary --}}
-                <div class="col-md-12">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-header bg-light fw-bold fs-5">Payment Summary</div>
-                        <div class="card-body">
-                            @php
-                                $payment = $order->payments->first();
-                            @endphp
-
-                            @if($payment)
-                                <p class="mb-1">Payment ID: <span class="fw-semibold">{{ $payment->payment_id ?? 'N/A' }}</span></p>
-                                <p class="mb-1">Mode: <span class="fw-semibold text-capitalize">{{ $payment->payment_method ?? 'N/A' }}</span></p>
-                                <p class="mb-1">Status:
-                                    <span class="badge bg-{{ $payment->status === 'paid' ? 'success' : 'danger' }}">
-                                        {{ ucfirst($payment->status) }}
-                                    </span>
-                                </p>
-                                <p class="mb-0">Paid On: {{ optional($payment->created_at)->format('d M Y, h:i A') }}</p>
-                            @else
-                                <p class="text-muted mb-0">No payment record found.</p>
-                            @endif
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ old('email', auth()->user()->email ?? '') }}" required>
                 </div>
 
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Phone</label>
+                    <input type="text" name="phone" class="form-control" value="{{ old('phone') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Pincode</label>
+                    <input type="text" name="pincode" class="form-control" value="{{ old('pincode') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Address</label>
+                    <textarea name="address" class="form-control" rows="2" required>{{ old('address') }}</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">City</label>
+                    <input type="text" name="city" class="form-control" value="{{ old('city') }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">State</label>
+                    <input type="text" name="state" class="form-control" value="{{ old('state') }}">
+                </div>
+
+                <hr>
+
+                <h5 class="mb-3 fw-bold">Payment Method</h5>
+
+                <div class="mb-3 form-check">
+                    <input type="radio" name="payment_method" id="cod" value="cod" class="form-check-input" checked>
+                    <label for="cod" class="form-check-label">Cash on Delivery</label>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="radio" name="payment_method" id="card" value="card" class="form-check-input">
+                    <label for="card" class="form-check-label">Card / Online Payment</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-3">Place Order</button>
+            </form>
         </div>
     </div>
 </div>

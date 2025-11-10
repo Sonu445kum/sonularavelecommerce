@@ -27,7 +27,19 @@ class CheckoutController extends Controller
      */
     public function index()
     {
-        return $this->show();
+       $user = Auth::user();
+    $cart = Cart::with('items.product.productImages')->where('user_id', $user->id)->first();
+
+    if (!$cart || $cart->items->isEmpty()) {
+        return redirect()->route('cart.index')->with('error', 'Your cart is empty!');
+    }
+
+    $cartItems = $cart->items; // <- add this
+
+    return view('checkout.index', [
+        'cart' => $cart,
+        'cartItems' => $cartItems, // <- now available in Blade
+    ]);
     }
 
     /**
@@ -373,44 +385,47 @@ class CheckoutController extends Controller
      * ✅ Success Page
      */
     public function success(Request $req)
-    {
-        $order = Order::with('address')->find($req->order_id);
-        if (!$order) {
-            return redirect()->route('home')->withErrors('Order not found.');
-        }
+{
+    // ✅ Eager load order items, products, and product images
+    $order = Order::with(['address', 'items.product.images'])->find($req->order_id);
 
-        $order->update([
-            'status' => 'Processing',
-            'payment_status' => 'Paid',
-            'paid_at' => now(),
-        ]);
-
-        Payment::create([
-            'order_id' => $order->id,
-            'transaction_id' => $order->payment_intent_id ?? ('STRIPE-' . strtoupper(uniqid())),
-            'status' => 'success',
-            'method' => $order->payment_method ?? 'stripe',
-            'amount' => $order->total ?? 0,
-            'meta' => json_encode([
-                'user_id' => $order->user_id,
-                'coupon' => $order->coupon_code,
-                'paid_at' => now()->toDateTimeString(),
-            ]),
-        ]);
-
-        if ($order->user_id) {
-            $cart = Cart::where('user_id', $order->user_id)->first();
-            if ($cart) {
-                $cart->items()->delete();
-                $cart->delete();
-            }
-        }
-
-        $coupon = $order->coupon_code ?? null;
-
-        return view('checkout.success', compact('order', 'coupon'))
-            ->with('success', 'Payment recorded successfully!');
+    if (!$order) {
+        return redirect()->route('home')->withErrors('Order not found.');
     }
+
+    $order->update([
+        'status' => 'Processing',
+        'payment_status' => 'Paid',
+        'paid_at' => now(),
+    ]);
+
+    Payment::create([
+        'order_id' => $order->id,
+        'transaction_id' => $order->payment_intent_id ?? ('STRIPE-' . strtoupper(uniqid())),
+        'status' => 'success',
+        'method' => $order->payment_method ?? 'stripe',
+        'amount' => $order->total ?? 0,
+        'meta' => json_encode([
+            'user_id' => $order->user_id,
+            'coupon' => $order->coupon_code,
+            'paid_at' => now()->toDateTimeString(),
+        ]),
+    ]);
+
+    if ($order->user_id) {
+        $cart = Cart::where('user_id', $order->user_id)->first();
+        if ($cart) {
+            $cart->items()->delete();
+            $cart->delete();
+        }
+    }
+
+    $coupon = $order->coupon_code ?? null;
+
+    return view('checkout.success', compact('order', 'coupon'))
+        ->with('success', 'Payment recorded successfully!');
+}
+
 
     /**
      * ❌ Cancel page
