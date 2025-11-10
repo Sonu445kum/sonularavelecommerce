@@ -20,6 +20,7 @@ class Order extends Model
         'order_number',
         'user_id',
         'address_id',
+        'shipping_address', // ✅ Added for checkout address storage
         'subtotal',
         'shipping',
         'tax',
@@ -36,12 +37,13 @@ class Order extends Model
      * -------------------------------------------------
      */
     protected $casts = [
-        'meta'      => 'array',
-        'subtotal'  => 'decimal:2',
-        'shipping'  => 'decimal:2',
-        'tax'       => 'decimal:2',
-        'discount'  => 'decimal:2',
-        'total'     => 'decimal:2',
+        'meta'              => 'array',
+        'shipping_address'  => 'array', // ✅ Important fix
+        'subtotal'          => 'decimal:2',
+        'shipping'          => 'decimal:2',
+        'tax'               => 'decimal:2',
+        'discount'          => 'decimal:2',
+        'total'             => 'decimal:2',
     ];
 
     /**
@@ -54,7 +56,7 @@ class Order extends Model
         parent::booted();
 
         static::creating(function ($order) {
-            // 🔹 Auto-generate UUID if missing
+            // 🔹 Auto-generate UUID
             if (empty($order->uuid)) {
                 $order->uuid = (string) Str::uuid();
             }
@@ -64,7 +66,7 @@ class Order extends Model
                 $order->order_number = 'ORD-' . strtoupper(uniqid());
             }
 
-            // 🔹 Auto-calculate total if not provided
+            // 🔹 Auto-calculate total
             if (empty($order->total)) {
                 $order->total = ($order->subtotal ?? 0)
                               + ($order->shipping ?? 0)
@@ -85,38 +87,36 @@ class Order extends Model
      * -------------------------------------------------
      */
 
-    // 🔹 Each order belongs to one user
+    // 🔹 Belongs to one user
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // 🔹 Each order belongs to one address (shipping/billing)
+    // 🔹 Optional: belongs to Address model (if used)
     public function address()
-{
-    return $this->belongsTo(Address::class, 'address_id');
-}
+    {
+        return $this->belongsTo(Address::class, 'address_id');
+    }
 
-
-    // 🔹 Each order has many order items
+    // 🔹 Has many items
     public function items()
-{
-    return $this->hasMany(OrderItem::class);
-}
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
-public function orderItems()
-{
-    return $this->hasMany(\App\Models\OrderItem::class, 'order_id');
-}
+    public function orderItems()
+    {
+        return $this->hasMany(\App\Models\OrderItem::class, 'order_id');
+    }
 
-
-    // 🔹 Each order can have multiple payments
+    // 🔹 Has many payments
     public function payments()
     {
         return $this->hasMany(Payment::class);
     }
 
-    // 🔹 Fetch only the latest successful payment
+    // 🔹 Latest successful payment
     public function latestPayment()
     {
         return $this->hasOne(Payment::class)->latestOfMany();
@@ -128,25 +128,25 @@ public function orderItems()
      * -------------------------------------------------
      */
 
-    // 🔹 Formatted total (2 decimal places)
+    // 🔹 Get formatted total
     public function getFormattedTotalAttribute(): string
     {
         return number_format($this->total, 2);
     }
 
-    // 🔹 Dynamically compute total (useful for recalculation)
+    // 🔹 Dynamically compute total
     public function getComputedTotalAttribute(): float
     {
         return (float) ($this->subtotal + $this->shipping + $this->tax - $this->discount);
     }
 
-    // 🔹 Check if order is delivered
+    // 🔹 Check if delivered
     public function isDelivered(): bool
     {
         return strtolower($this->status) === 'delivered';
     }
 
-    // 🔹 Check if payment success exists
+    // 🔹 Check if payment is successful
     public function isPaid(): bool
     {
         return $this->payments()->where('status', 'success')->exists();
@@ -154,29 +154,24 @@ public function orderItems()
 
     /**
      * -------------------------------------------------
-     * Query Scopes (for dashboard filters)
+     * Query Scopes
      * -------------------------------------------------
      */
-
-    // 🔹 Filter orders by user
     public function scopeOfUser($query, $userId)
     {
         return $query->where('user_id', $userId);
     }
 
-    // 🔹 Filter by status
     public function scopeStatus($query, $status)
     {
         return $query->where('status', $status);
     }
 
-    // 🔹 Current month orders
     public function scopeMonthly($query)
     {
         return $query->whereMonth('created_at', now()->month);
     }
 
-    // 🔹 Calculate total revenue
     public function scopeRevenue($query)
     {
         return $query->where('status', 'delivered')->sum('total');

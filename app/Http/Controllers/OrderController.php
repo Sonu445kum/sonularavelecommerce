@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Order;
+use App\Models\Review;
 
 class OrderController extends Controller
 {
@@ -31,32 +32,26 @@ class OrderController extends Controller
             case 'latest':
                 $query->orderBy('created_at', 'desc');
                 break;
-
             case 'oldest':
                 $query->orderBy('created_at', 'asc');
                 break;
-
             case 'pending':
                 $query->where('status', 'Pending');
                 break;
-
             case 'processing':
                 $query->where('status', 'Processing');
                 break;
-
             case 'delivered':
                 $query->where('status', 'Delivered');
                 break;
-
             default:
-                $query->orderBy('created_at', 'desc'); // Default to latest
+                $query->orderBy('created_at', 'desc');
                 break;
         }
 
         // 🔹 Pagination
         $orders = $query->paginate($user->is_admin ? 20 : 10);
 
-        // 🔹 Handle empty orders
         if ($orders->isEmpty()) {
             session()->flash('info', 'No orders found for this filter.');
         }
@@ -66,7 +61,7 @@ class OrderController extends Controller
 
     /**
      * ==========================================
-     * Display Single Order Details
+     * Display Single Order Details + Reviews
      * ==========================================
      */
     public function show($id)
@@ -74,9 +69,6 @@ class OrderController extends Controller
         $order = Order::with([
             'user',
             'items.product.images',
-             'items.product.reviews' => function ($query) {
-                $query->where('user_id', Auth::id());
-            },
             'address',
             'payments' => function ($q) {
                 $q->latest();
@@ -88,31 +80,56 @@ class OrderController extends Controller
             abort(403, 'Unauthorized access to order details.');
         }
 
-        // 🔹 Ensure Address Relation (Fallback)
+        // 🩵 Ensure Address Relation
         if (!$order->address && $order->address_id) {
             $order->load('address');
         }
 
-        // 🔹 Optional Fallback (legacy orders)
-        $order->shipping_address = $order->address
-            ? $order->address
-            : (object) [
-                'name' => $order->name,
-                'phone' => $order->phone,
+        // 🧠 Normalize Shipping Address
+        if ($order->address) {
+            $order->shipping_address = (object) [
+                'name' => $order->address->name ?? $order->user->name ?? 'N/A',
+                'phone' => $order->address->phone ?? $order->user->phone ?? 'N/A',
+                'address_line1' => $order->address->address_line1 ?? $order->address->address ?? null,
+                'city' => $order->address->city ?? null,
+                'state' => $order->address->state ?? null,
+                'postal_code' => $order->address->postal_code ?? null,
+                'country' => $order->address->country ?? 'India',
+            ];
+        } elseif (!empty($order->shipping_address)) {
+            if (is_array($order->shipping_address)) {
+                $order->shipping_address = (object) $order->shipping_address;
+            } elseif (is_string($order->shipping_address)) {
+                $decoded = json_decode($order->shipping_address, true);
+                $order->shipping_address = is_array($decoded) ? (object) $decoded : (object)[];
+            }
+        } else {
+            $order->shipping_address = (object) [
+                'name' => $order->name ?? $order->user->name ?? 'N/A',
+                'phone' => $order->phone ?? $order->user->phone ?? 'N/A',
                 'address_line1' => $order->address_line1 ?? $order->address ?? null,
-                'address_line2' => $order->address_line2 ?? null,
                 'city' => $order->city ?? null,
                 'state' => $order->state ?? null,
                 'postal_code' => $order->postal_code ?? $order->pincode ?? null,
                 'country' => $order->country ?? 'India',
-                'label' => 'Default',
             ];
+        }
 
-        // 🔹 Format Data
+        // 🧾 Format Data
         $order->formatted_total = number_format($order->total, 2);
         $order->item_count = $order->items->sum('quantity');
 
-        return view('orders.show', compact('order'));
+        // 🔹 Fetch reviews for all products in this order
+        $productIds = $order->items->pluck('product_id')->toArray();
+        $reviews = Review::with('user')
+            ->whereIn('product_id', $productIds)
+            ->latest()
+            ->paginate(3); // Pagination
+
+        // 🔹 Pass first product for review form if needed
+        $firstProduct = $order->items->first()?->product;
+
+        return view('orders.show', compact('order', 'firstProduct', 'reviews'));
     }
 
     /**

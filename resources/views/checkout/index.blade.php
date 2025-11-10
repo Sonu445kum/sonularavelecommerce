@@ -1,217 +1,117 @@
 @extends('layouts.app')
 
-@section('title', 'Checkout')
+@section('title', 'Order Details')
 
 @section('content')
-<div class="container mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">Checkout</h1>
+<div class="container my-5">
 
-    {{-- ✅ Flash Messages --}}
-    @if(session('error'))
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-4">
-            {{ session('error') }}
+    {{-- 🧭 Breadcrumb --}}
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('orders.index') }}">My Orders</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Order #{{ $order->id }}</li>
+        </ol>
+    </nav>
+
+    {{-- 🧾 Order Summary --}}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h4 class="fw-bold mb-1">Order #{{ $order->id }}</h4>
+                <p class="mb-0 text-muted">Placed on {{ $order->created_at->format('d M Y, h:i A') }}</p>
+            </div>
+            <span class="badge bg-{{ $order->status === 'delivered' ? 'success' : ($order->status === 'pending' ? 'warning' : 'secondary') }} fs-6">
+                {{ ucfirst($order->status) }}
+            </span>
         </div>
-    @endif
+    </div>
 
-    @if(session('success'))
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md mb-4">
-            {{ session('success') }}
-        </div>
-    @endif
+    <div class="row g-4">
 
-    {{-- ✅ Empty Cart Handling --}}
-    @if(empty($cartItems) || $cartItems->isEmpty())
-        <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md">
-            Your cart is empty.
-            <a href="{{ route('products.index') }}" class="underline font-semibold">Shop now →</a>
-        </div>
-    @else
-        {{-- ✅ Only ONE form for checkout --}}
-        <form action="{{ route('checkout.process') }}" method="POST">
-            @csrf
+        {{-- 📦 Ordered Items --}}
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-light fw-bold fs-5">Ordered Items</div>
+                <div class="card-body">
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {{-- =========================================================
-                     LEFT SECTION → Shipping Details + Payment Method
-                ========================================================= --}}
-                <div class="lg:col-span-2 space-y-8">
-                    
-                    {{-- 🏠 Shipping Address --}}
-                    <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Shipping Address</h2>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-gray-600 mb-1 text-sm">Full Name</label>
-                                <input type="text" name="name" value="{{ old('name', auth()->user()->name ?? '') }}" required
-                                       class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            <div>
-                                <label class="block text-gray-600 mb-1 text-sm">Email</label>
-                                <input type="email" name="email" value="{{ old('email', auth()->user()->email ?? '') }}" required
-                                       class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            <div>
-                                <label class="block text-gray-600 mb-1 text-sm">Phone</label>
-                                <input type="text" name="phone" value="{{ old('phone') }}" required
-                                       class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            <div>
-                                <label class="block text-gray-600 mb-1 text-sm">Pincode</label>
-                                <input type="text" name="pincode" value="{{ old('pincode') }}" required
-                                       class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500">
-                            </div>
-
-                            <div class="sm:col-span-2">
-                                <label class="block text-gray-600 mb-1 text-sm">Address</label>
-                                <textarea name="address" rows="3" required
-                                          class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500">{{ old('address') }}</textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- 💳 Payment Method --}}
-                    <div class="bg-white p-6 rounded-xl shadow-md">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-4">Payment Method</h2>
-
-                        <div class="space-y-4">
-                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition">
-                                <input type="radio" name="payment_method" value="cod" required {{ old('payment_method') == 'cod' ? 'checked' : '' }}>
-                                <span class="text-gray-800 font-medium">Cash on Delivery (COD)</span>
-                            </label>
-
-                            <label class="flex items-center space-x-3 border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition">
-                                <input type="radio" name="payment_method" value="card" {{ old('payment_method') == 'card' ? 'checked' : '' }}>
-                                <span class="text-gray-800 font-medium">Pay Online (Stripe)</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- =========================================================
-                     RIGHT SECTION → Order Summary
-                ========================================================= --}}
-                <div>
-                    <div class="bg-gray-50 p-6 rounded-xl shadow-md">
-                        <h2 class="text-lg font-semibold text-gray-800 mb-4">Order Summary</h2>
-
-                        {{-- 🛒 Cart Items --}}
-                        <div class="space-y-4 max-h-80 overflow-y-auto pr-2">
-                            @foreach($cartItems as $item)
-                                @php
-                                    $imageUrl = null;
-                                    if ($item->product) {
-                                        if ($item->product->featured_image) {
-                                            $imagePath = $item->product->featured_image;
-                                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
-                                                ? $imagePath
-                                                : asset('storage/' . ltrim($imagePath, '/'));
-                                        } elseif ($item->product->images && $item->product->images->count() > 0) {
-                                            $imagePath = $item->product->images->first()->path;
-                                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
-                                                ? $imagePath
-                                                : asset('storage/' . ltrim($imagePath, '/'));
-                                        }
-                                    }
-                                    $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
-                                    $productName = $item->product->title ?? $item->product->name ?? 'Unnamed Product';
-                                @endphp
-
-                                <div class="flex justify-between items-center border-b pb-3">
-                                    <div class="flex items-center space-x-3">
-                                        <img src="{{ $imageUrl }}" alt="{{ $productName }}"
-                                             class="w-12 h-12 rounded-md object-cover"
-                                             onerror="this.src='{{ asset('images/default-product.jpg') }}'">
-
-                                        <div>
-                                            <h3 class="font-semibold text-gray-800 text-sm">{{ $productName }}</h3>
-                                            <p class="text-xs text-gray-500">Qty: {{ $item->quantity }}</p>
-                                        </div>
-                                    </div>
-                                    <span class="text-gray-800 font-semibold">
-                                        ₹{{ number_format($item->price * $item->quantity, 2) }}
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        {{-- 💰 Order Totals --}}
+                    @foreach ($order->orderItems as $item)
                         @php
-                            $subtotal = $cartItems->sum(fn($item) => $item->price * $item->quantity);
-                            $shipping = 50;
-                            $discount = 0;
-                            $coupon = session('coupon');
-
-                            if ($coupon) {
-                                if ($coupon['discount_type'] === 'fixed') {
-                                    $discount = $coupon['discount_value'];
-                                } elseif ($coupon['discount_type'] === 'percent') {
-                                    $discount = ($subtotal * $coupon['discount_value']) / 100;
-                                }
-                            }
-
-                            $total = max($subtotal - $discount + $shipping, 0);
+                            $product = $item->product;
+                            $image = $product->productImages->first()->image_path ?? 'images/no-image.png';
                         @endphp
 
-                        {{-- 🎟️ Coupon Input (Separate form to avoid nesting) --}}
-                        <div class="mt-4">
-                            <form action="{{ route('checkout.applyCoupon') }}" method="POST">
-                                @csrf
-                                <div class="flex items-center space-x-2">
-                                    <input type="text" name="code" placeholder="Enter coupon code"
-                                           class="w-full border rounded-md p-2 focus:ring-2 focus:ring-indigo-500"
-                                           value="{{ old('code', session('coupon.code') ?? '') }}">
-                                    <button type="submit"
-                                            class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
-                                        Apply
-                                    </button>
-                                </div>
-
-                                @if(session('coupon'))
-                                    <p class="text-green-600 text-sm mt-1">
-                                        ✅ Coupon Applied: <strong>{{ session('coupon.code') }}</strong>
-                                    </p>
-                                @endif
-                            </form>
-                        </div>
-
-                        {{-- 📦 Total Summary --}}
-                        <div class="mt-6 border-t pt-4 space-y-2 text-sm">
-                            <div class="flex justify-between text-gray-700">
-                                <span>Subtotal:</span>
-                                <span>₹{{ number_format($subtotal, 2) }}</span>
-                            </div>
-
-                            @if($discount > 0)
-                                <div class="flex justify-between text-green-700">
-                                    <span>Discount ({{ session('coupon.code') ?? '' }}):</span>
-                                    <span>- ₹{{ number_format($discount, 2) }}</span>
-                                </div>
-                            @endif
-
-                            <div class="flex justify-between text-gray-700">
-                                <span>Shipping:</span>
-                                <span>₹{{ number_format($shipping, 2) }}</span>
-                            </div>
-
-                            <div class="flex justify-between font-bold text-gray-900 text-lg border-t pt-2">
-                                <span>Total:</span>
-                                <span>₹{{ number_format($total, 2) }}</span>
+                        <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+                            <img src="{{ asset($image) }}" class="rounded-3 me-3"
+                                 style="width: 90px; height: 90px; object-fit: cover;" alt="{{ $product->title }}">
+                            <div class="flex-grow-1">
+                                <h6 class="fw-semibold mb-1">{{ $product->title }}</h6>
+                                <p class="text-muted mb-1">Qty: {{ $item->quantity }}</p>
+                                <p class="fw-bold mb-0">₹{{ number_format($item->price * $item->quantity, 2) }}</p>
                             </div>
                         </div>
+                    @endforeach
 
-                        {{-- ✅ Place Order --}}
-                        <button type="submit"
-                                class="w-full bg-indigo-600 text-white mt-6 py-3 rounded-lg font-medium hover:bg-indigo-700 transition">
-                            Place Order →
-                        </button>
+                    <div class="text-end fw-bold fs-5 mt-3">
+                        Total: ₹{{ number_format($order->total_amount, 2) }}
                     </div>
                 </div>
             </div>
-        </form>
-    @endif
+        </div>
+
+        {{-- 📬 Shipping & Payment Info --}}
+        <div class="col-lg-4">
+            <div class="row g-3">
+
+                {{-- 🏠 Shipping Address --}}
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-header bg-light fw-bold fs-5">Shipping Address</div>
+                        <div class="card-body">
+                            @php
+                                $shipping = is_array($order->shipping_address)
+                                    ? (object) $order->shipping_address
+                                    : (is_string($order->shipping_address)
+                                        ? json_decode($order->shipping_address)
+                                        : $order->shipping_address);
+                            @endphp
+
+                            <p class="fw-semibold mb-1">{{ $shipping->name ?? $order->user->name ?? 'N/A' }}</p>
+                            <p class="mb-1">Email: {{ $shipping->email ?? $order->user->email ?? 'N/A' }}</p>
+                            <p class="mb-1">Phone: {{ $shipping->phone ?? 'N/A' }}</p>
+                            <p class="mb-1">Pincode: {{ $shipping->pincode ?? 'N/A' }}</p>
+                            <p class="mb-0">Address: {{ $shipping->address ?? 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 💳 Payment Summary --}}
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm rounded-4 h-100">
+                        <div class="card-header bg-light fw-bold fs-5">Payment Summary</div>
+                        <div class="card-body">
+                            @php
+                                $payment = $order->payments->first();
+                            @endphp
+
+                            @if($payment)
+                                <p class="mb-1">Payment ID: <span class="fw-semibold">{{ $payment->payment_id ?? 'N/A' }}</span></p>
+                                <p class="mb-1">Mode: <span class="fw-semibold text-capitalize">{{ $payment->payment_method ?? 'N/A' }}</span></p>
+                                <p class="mb-1">Status:
+                                    <span class="badge bg-{{ $payment->status === 'paid' ? 'success' : 'danger' }}">
+                                        {{ ucfirst($payment->status) }}
+                                    </span>
+                                </p>
+                                <p class="mb-0">Paid On: {{ optional($payment->created_at)->format('d M Y, h:i A') }}</p>
+                            @else
+                                <p class="text-muted mb-0">No payment record found.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
 </div>
 @endsection

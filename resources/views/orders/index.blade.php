@@ -1,10 +1,10 @@
-<!-- @extends('layouts.app')
+@extends('layouts.app')
 
 @section('title', 'My Orders')
 
 @section('content')
 <div class="container mx-auto px-4 py-10">
-    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Orders</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-8">My Orders Sonu</h1>
 
     {{-- 🔍 Filter Bar --}}
     <form method="GET" action="{{ route('orders.index') }}" class="mb-8 bg-white shadow-sm rounded-xl p-4 flex flex-wrap gap-4 items-center justify-between">
@@ -116,4 +116,4 @@
         </div>
     @endif
 </div>
-@endsection -->
+@endsection

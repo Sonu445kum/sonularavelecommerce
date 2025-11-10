@@ -446,7 +446,7 @@
     display: none;
 }
 .star-rating label {
-    color: #ccc;
+    color: #d38686ff;
     transition: color 0.2s;
     cursor: pointer;
 }
