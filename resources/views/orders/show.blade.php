@@ -65,51 +65,55 @@
     </div>
 
     {{-- ✅ Ordered Products --}}
-    <div class="bg-white shadow-md rounded-xl p-6 mb-8">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Ordered Products</h2>
+<div class="bg-white shadow-md rounded-xl p-6 mb-8">
+    <h2 class="text-xl font-semibold text-gray-800 mb-4">Ordered Products</h2>
 
-        @if($order->items->count())
-            <div class="space-y-6">
-                @foreach($order->items as $item)
-                    @php
-                        $imageUrl = null;
-                        if ($item->product_image) {
-                            $imagePath = $item->product_image;
-                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
-                                ? $imagePath
-                                : asset('storage/' . ltrim($imagePath, '/'));
-                        } elseif ($item->product && $item->product->featured_image) {
-                            $imagePath = $item->product->featured_image;
-                            $imageUrl = (str_starts_with($imagePath, 'http://') || str_starts_with($imagePath, 'https://'))
-                                ? $imagePath
-                                : asset('storage/' . ltrim($imagePath, '/'));
-                        } elseif ($item->product && $item->product->images && count($item->product->images) > 0) {
-                            $imagePath = $item->product->images[0]['path'] ?? null;
-                            $imageUrl = $imagePath ? asset('storage/' . ltrim($imagePath, '/')) : null;
-                        }
-                        $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
-                        $productName = $item->product_name ?? $item->product->title ?? $item->product->name ?? 'Product';
-                    @endphp
+    @if($order->items->count())
+        <div class="space-y-6">
+            @foreach($order->items as $item)
+                @php
+                    // Product Image
+                    $imageUrl = null;
+                    if ($item->product_image) {
+                        $imagePath = $item->product_image;
+                        $imageUrl = str_starts_with($imagePath, 'http') ? $imagePath : asset('storage/' . ltrim($imagePath, '/'));
+                    } elseif ($item->product && $item->product->featured_image) {
+                        $imagePath = $item->product->featured_image;
+                        $imageUrl = str_starts_with($imagePath, 'http') ? $imagePath : asset('storage/' . ltrim($imagePath, '/'));
+                    } elseif ($item->product && $item->product->images && count($item->product->images) > 0) {
+                        $imagePath = $item->product->images[0]['path'] ?? null;
+                        $imageUrl = $imagePath ? asset('storage/' . ltrim($imagePath, '/')) : null;
+                    }
+                    $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
 
-                    <div class="flex flex-col sm:flex-row items-center justify-between border-b pb-4">
-                        <div class="flex items-center space-x-4">
-                            <img src="{{ $imageUrl }}" alt="{{ $productName }}" class="w-20 h-20 object-cover rounded-md border" onerror="this.src='{{ asset('images/default-product.jpg') }}'">
-                            <div>
-                                <h3 class="font-semibold text-gray-800">{{ $productName }}</h3>
-                                <p class="text-sm text-gray-600">Quantity: {{ $item->quantity }}</p>
-                            </div>
-                        </div>
-                        <div class="text-right mt-3 sm:mt-0">
-                            <p class="font-semibold text-gray-800">₹{{ number_format($item->price, 2) }}</p>
-                            <p class="text-sm text-gray-500">Subtotal: ₹{{ number_format($item->price * $item->quantity, 2) }}</p>
+                    // Product Name
+                    $productName = $item->product_name ?? $item->product->title ?? $item->product->name ?? 'Product';
+
+                    // Unit Price & Subtotal
+                    $unitPrice = $item->unit_price ?? ($item->price ?? 0);
+                    $subtotal = $unitPrice * ($item->quantity ?? 1);
+                @endphp
+
+                <div class="flex flex-col sm:flex-row items-center justify-between border-b pb-4">
+                    <div class="flex items-center space-x-4">
+                        <img src="{{ $imageUrl }}" alt="{{ $productName }}" class="w-20 h-20 object-cover rounded-md border" onerror="this.src='{{ asset('images/default-product.jpg') }}'">
+                        <div>
+                            <h3 class="font-semibold text-gray-800">{{ $productName }}</h3>
+                            <p class="text-sm text-gray-600">Quantity: {{ $item->quantity }}</p>
                         </div>
                     </div>
-                @endforeach
-            </div>
-        @else
-            <p class="text-gray-500">No items found in this order.</p>
-        @endif
-    </div>
+                    <div class="text-right mt-3 sm:mt-0">
+                        <p class="font-semibold text-gray-800">₹{{ number_format($unitPrice, 2) }}</p>
+                        <p class="text-sm text-gray-500">Subtotal: ₹{{ number_format($subtotal, 2) }}</p>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+    @else
+        <p class="text-gray-500">No items found in this order.</p>
+    @endif
+</div>
+
 
     {{-- ✅ Payment Details --}}
     <div class="bg-white shadow-md rounded-xl p-6 mb-8">

@@ -7,7 +7,7 @@
 
     <h1 class="text-3xl font-bold text-gray-800 mb-8">🛒 Your Shopping Cart</h1>
 
-    {{-- ✅ Guest View --}}
+    {{-- Guest View --}}
     @guest
         <div class="bg-white rounded-xl shadow p-8 text-center">
             <p class="text-gray-600 text-lg mb-4">
@@ -20,7 +20,7 @@
             </a>
         </div>
     @else
-        {{-- ✅ Empty Cart --}}
+        {{-- Empty Cart --}}
         @if(!$cart || $cart->items->isEmpty())
             <div class="bg-white rounded-xl shadow p-8 text-center">
                 <p class="text-gray-500 text-lg mb-4">Your cart is empty.</p>
@@ -30,7 +30,7 @@
                 </a>
             </div>
         @else
-            {{-- ✅ Cart Table --}}
+            {{-- Cart Table --}}
             <div class="bg-white rounded-xl shadow-md overflow-x-auto">
                 <table class="min-w-full text-left border-collapse">
                     <thead class="bg-gray-100 text-gray-700 uppercase text-sm">
@@ -45,53 +45,62 @@
                     <tbody>
                         @foreach($cart->items as $item)
                             <tr class="border-b hover:bg-gray-50 transition">
-                                {{-- ✅ Product Info --}}
+                                {{-- Product Info --}}
                                 <td class="p-4 flex items-center space-x-4">
                                     @php
-                                        $imagePath = null;
-                                        if (!empty($item->product->featured_image_url)) {
+                                        if(!empty($item->product->featured_image_url)){
                                             $imagePath = $item->product->featured_image_url;
-                                        } elseif (!empty($item->product->image) && file_exists(public_path('storage/'.$item->product->image))) {
+                                        } elseif(!empty($item->product->image) && file_exists(public_path('storage/'.$item->product->image))){
                                             $imagePath = asset('storage/'.$item->product->image);
                                         } else {
                                             $imagePath = asset('images/no-image.png');
                                         }
                                     @endphp
-
                                     <img src="{{ $imagePath }}"
                                          alt="{{ $item->product->name }}"
                                          class="w-16 h-16 object-cover rounded-lg shadow-sm">
-
                                     <div>
                                         <h3 class="font-semibold text-gray-800">{{ $item->product->name }}</h3>
                                         <p class="text-sm text-gray-500">{{ Str::limit($item->product->description, 60) }}</p>
                                     </div>
                                 </td>
 
-                                {{-- ✅ Price --}}
+                                {{-- Price --}}
                                 <td class="p-4 text-center font-semibold text-indigo-600">
                                     ₹{{ number_format($item->price, 2) }}
                                 </td>
 
-                                {{-- ✅ Quantity Update --}}
+                                {{-- Quantity Update --}}
                                 <td class="p-4 text-center">
-                                    <form action="{{ route('cart.update', $item->id) }}" method="POST" class="inline-flex items-center justify-center space-x-2">
-                                        @csrf
-                                        <input type="number" name="quantity" value="{{ $item->quantity }}" min="1"
-                                               class="w-16 border border-gray-300 rounded-md p-1 text-center text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:outline-none">
-                                        <button type="submit" 
-                                                class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 text-sm transition">
-                                            Update
+                                    <div class="inline-flex items-center justify-center space-x-2">
+                                        <button type="button" 
+                                                class="quantity-btn bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                                                data-action="decrease"
+                                                data-id="{{ $item->id }}">
+                                            -
                                         </button>
-                                    </form>
+
+                                        <input type="number" name="quantity" value="{{ $item->quantity }}" min="1"
+                                               class="quantity-input w-16 border border-gray-300 rounded-md p-1 text-center text-gray-700 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                                               data-id="{{ $item->id }}">
+
+                                        <button type="button" 
+                                                class="quantity-btn bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+                                                data-action="increase"
+                                                data-id="{{ $item->id }}">
+                                            +
+                                        </button>
+                                    </div>
                                 </td>
 
-                                {{-- ✅ Subtotal --}}
+                                {{-- Subtotal --}}
                                 <td class="p-4 text-center text-gray-800 font-semibold">
-                                    ₹{{ number_format($item->price * $item->quantity, 2) }}
+                                    <span class="item-total-price" id="item-total-{{ $item->id }}">
+                                        ₹{{ number_format($item->price * $item->quantity, 2) }}
+                                    </span>
                                 </td>
 
-                                {{-- ✅ Remove --}}
+                                {{-- Remove --}}
                                 <td class="p-4 text-center">
                                     <form action="{{ route('cart.remove', $item->id) }}" method="POST" onsubmit="return confirm('Remove this item from cart?');">
                                         @csrf
@@ -108,49 +117,39 @@
                 </table>
             </div>
 
-            {{-- ✅ Cart Summary & Coupon --}}
-            <div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
+            {{-- Apply Coupon --}}
+            <div class="mt-6 flex items-center gap-4">
+                <form action="{{ route('coupon.apply') }}" method="POST" class="flex gap-2">
+                    @csrf
+                    <input type="text" name="coupon_code" placeholder="Enter coupon code"
+                           class="border border-gray-300 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    <button type="submit"
+                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
+                        Apply
+                    </button>
+                </form>
+                @if(session('coupon_error'))
+                    <span class="text-red-600 font-medium">{{ session('coupon_error') }}</span>
+                @endif
+                @if(session('coupon_success'))
+                    <span class="text-green-600 font-medium">{{ session('coupon_success') }}</span>
+                @endif
+            </div>
 
+            {{-- Cart Summary & Checkout --}}
+            <div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
                 <a href="{{ route('products.index') }}" 
                    class="text-indigo-600 hover:underline flex items-center gap-1">
                    ← Continue Shopping
                 </a>
 
                 <div class="bg-gray-50 p-6 rounded-xl shadow-md w-full md:w-1/3">
-
-                    {{-- 🎟️ Coupon Form --}}
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Apply Coupon</h2>
-
-                    @if(session('coupon'))
-                        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded mb-4">
-                            ✅ Coupon "<strong>{{ session('coupon.code') }}</strong>" applied successfully!
-                            <form action="{{ route('coupon.remove') }}" method="POST" class="inline">
-                                @csrf
-                                <button type="submit" class="text-red-600 font-medium ml-2 hover:underline">
-                                    Remove
-                                </button>
-                            </form>
-                        </div>
-                    @else
-                        <form action="{{ route('coupon.apply') }}" method="POST" class="flex items-center gap-2 mb-4">
-                            @csrf
-                            <input type="text" name="code" placeholder="Enter coupon code"
-                                   class="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                                   required>
-                            <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
-                                Apply
-                            </button>
-                        </form>
-                    @endif
-
-                    {{-- 🧾 Summary --}}
-                    <h2 class="text-lg font-semibold text-gray-800 mb-3">Order Summary</h2>
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Order Summary</h2>
 
                     @php
-                        $subtotal = $cart->subtotal;
+                        $subtotal = $cart->subtotal ?? 0;
                         $discount = 0;
                         $coupon = session('coupon');
-
                         if($coupon) {
                             if($coupon['discount_type'] === 'fixed') {
                                 $discount = $coupon['discount_value'];
@@ -158,14 +157,13 @@
                                 $discount = ($subtotal * $coupon['discount_value']) / 100;
                             }
                         }
-
                         $shipping = 50;
                         $total = max($subtotal - $discount + $shipping, 0);
                     @endphp
 
                     <div class="flex justify-between mb-2 text-gray-700">
                         <span>Subtotal:</span>
-                        <span class="font-semibold">₹{{ number_format($subtotal, 2) }}</span>
+                        <span class="font-semibold" id="cart-subtotal">₹{{ number_format($subtotal, 2) }}</span>
                     </div>
 
                     @if($discount > 0)
@@ -195,4 +193,62 @@
     @endguest
 
 </div>
+
+{{-- AJAX for Quantity Update --}}
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const quantityButtons = document.querySelectorAll('.quantity-btn');
+    const quantityInputs = document.querySelectorAll('.quantity-input');
+
+    quantityButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const action = this.dataset.action;
+            const id = this.dataset.id;
+            const input = document.querySelector(`.quantity-input[data-id="${id}"]`);
+            let qty = parseInt(input.value);
+
+            if(action === 'increase') qty++;
+            else if(action === 'decrease' && qty > 1) qty--;
+
+            input.value = qty;
+            updateCart(id, qty);
+        });
+    });
+
+    quantityInputs.forEach(input => {
+        input.addEventListener('change', function () {
+            const id = this.dataset.id;
+            let qty = parseInt(this.value);
+            if(qty < 1) qty = 1;
+            this.value = qty;
+            updateCart(id, qty);
+        });
+    });
+
+    function updateCart(id, quantity) {
+        fetch("/cart/update/" + id, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ quantity: quantity })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status){
+                document.getElementById('item-total-' + id).textContent = '₹' + parseFloat(data.item_total).toFixed(2);
+                document.getElementById('cart-subtotal').textContent = '₹' + parseFloat(data.cart_subtotal).toFixed(2);
+            } else {
+                alert(data.message);
+            }
+        })
+        .catch(() => alert('⚠️ Failed to update cart!'));
+    }
+});
+
+</script>
+@endpush
 @endsection

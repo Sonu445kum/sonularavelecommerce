@@ -25,15 +25,41 @@
             </ul>
         </div>
 
-        <div>
-            <h6 class="text-white font-semibold mb-2">Follow Us</h6>
-            <div class="flex space-x-4 text-xl">
-                <a href="#" class="hover:text-blue-400"><i class="bi bi-facebook"></i></a>
-                <a href="#" class="hover:text-pink-400"><i class="bi bi-instagram"></i></a>
-                <a href="#" class="hover:text-sky-400"><i class="bi bi-twitter-x"></i></a>
-                <a href="#" class="hover:text-blue-600"><i class="bi bi-linkedin"></i></a>
-            </div>
-        </div>
+        <div class="mt-4">
+    <h6 class="text-white font-semibold mb-3 uppercase tracking-wide">Follow Us</h6>
+    <div class="flex space-x-5 text-2xl">
+        <!-- Facebook -->
+        <a href="https://facebook.com/YourPageName" target="_blank" 
+           class="text-gray-400 hover:text-blue-500 transition duration-300">
+            <i class="bi bi-facebook"></i>
+        </a>
+
+        <!-- Instagram -->
+        <a href="https://instagram.com/YourPageName" target="_blank" 
+           class="text-gray-400 hover:text-pink-500 transition duration-300">
+            <i class="bi bi-instagram"></i>
+        </a>
+
+        <!-- Twitter / X -->
+        <a href="https://twitter.com/YourPageName" target="_blank" 
+           class="text-gray-400 hover:text-sky-400 transition duration-300">
+            <i class="bi bi-twitter-x"></i>
+        </a>
+
+        <!-- LinkedIn -->
+        <a href="https://linkedin.com/in/YourPageName" target="_blank" 
+           class="text-gray-400 hover:text-blue-600 transition duration-300">
+            <i class="bi bi-linkedin"></i>
+        </a>
+
+        <!-- YouTube (optional) -->
+        <a href="https://youtube.com/@YourChannelName" target="_blank" 
+           class="text-gray-400 hover:text-red-500 transition duration-300">
+            <i class="bi bi-youtube"></i>
+        </a>
+    </div>
+</div>
+
     </div>
 
     <div class="border-t border-gray-700 mt-8 pt-4 text-center text-gray-500 text-sm">

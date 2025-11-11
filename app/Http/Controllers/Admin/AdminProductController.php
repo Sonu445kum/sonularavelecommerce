@@ -121,52 +121,58 @@ class AdminProductController extends Controller
      * 🔁 Update product
      */
     public function update(Request $req, Product $product)
-    {
-        $rules = [
-            'title' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:products,slug,' . $product->id,
-            'description' => 'nullable|string',
-            'category_id' => 'nullable|exists:categories,id',
-            'price' => 'required|numeric|min:0',
-            'discounted_price' => 'nullable|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'sku' => 'nullable|string|max:255',
-            'featured_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
-            'is_active' => 'nullable|boolean',
-            'is_featured' => 'nullable|boolean',
-        ];
+{
+    $rules = [
+        'title' => 'required|string|max:255',
+        'slug' => 'nullable|string|max:255|unique:products,slug,' . $product->id,
+        'description' => 'nullable|string',
+        'category_id' => 'nullable|exists:categories,id',
+        'price' => 'required|numeric|min:0',
+        'discounted_price' => 'nullable|numeric|min:0', // ✅ validate discounted_price
+        'stock' => 'required|integer|min:0',
+        'sku' => 'nullable|string|max:255',
+        'featured_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
+        'is_active' => 'nullable|boolean',
+        'is_featured' => 'nullable|boolean',
+    ];
 
-        $data = $req->validate($rules);
+    $data = $req->validate($rules);
 
-        // 🧩 Auto-slug if missing
-        if (empty($data['slug']) && !empty($data['title'])) {
-            $data['slug'] = Str::slug($data['title']);
-        }
-
-        // 🖼️ Update featured image
-        if ($req->hasFile('featured_image') && $req->file('featured_image')->isValid()) {
-            if ($product->featured_image && Storage::disk('public')->exists($product->featured_image)) {
-                Storage::disk('public')->delete($product->featured_image);
-            }
-            $data['featured_image'] = $req->file('featured_image')->store('products', 'public');
-        }
-
-        // 🖼️ Update multiple images (append new)
-        $existingImages = json_decode($product->images, true) ?? [];
-        if ($req->hasFile('images')) {
-            foreach ($req->file('images') as $file) {
-                if ($file->isValid()) {
-                    $existingImages[] = $file->store('products/gallery', 'public');
-                }
-            }
-        }
-        $data['images'] = json_encode($existingImages);
-
-        $product->update($data);
-
-        return redirect()->route('admin.products.index')->with('success', '✅ Product updated successfully!');
+    // Auto-slug if missing
+    if (empty($data['slug']) && !empty($data['title'])) {
+        $data['slug'] = Str::slug($data['title']);
     }
+
+    // Update featured image
+    if ($req->hasFile('featured_image') && $req->file('featured_image')->isValid()) {
+        if ($product->featured_image && Storage::disk('public')->exists($product->featured_image)) {
+            Storage::disk('public')->delete($product->featured_image);
+        }
+        $data['featured_image'] = $req->file('featured_image')->store('products', 'public');
+    }
+
+    // Update multiple images (append new)
+    $existingImages = json_decode($product->images, true) ?? [];
+    if ($req->hasFile('images')) {
+        foreach ($req->file('images') as $file) {
+            if ($file->isValid()) {
+                $existingImages[] = $file->store('products/gallery', 'public');
+            }
+        }
+    }
+    $data['images'] = json_encode($existingImages);
+
+    // ✅ Ensure booleans are properly set
+    $data['is_active'] = $req->has('is_active');
+    $data['is_featured'] = $req->has('is_featured');
+
+    // 💾 Update product
+    $product->update($data);
+
+    return redirect()->route('admin.products.index')->with('success', '✅ Product updated successfully!');
+}
+
 
     /**
      * 🗑️ Delete product

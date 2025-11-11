@@ -14,9 +14,7 @@ class CouponController extends Controller
     public function apply(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|exists:coupons,code',
-        ], [
-            'code.exists' => 'Invalid coupon code. Please try again.',
+            'code' => 'required|string',
         ]);
 
         // 🔍 Find the active & valid coupon
@@ -29,14 +27,15 @@ class CouponController extends Controller
             ->first();
 
         if (!$coupon) {
-            return back()->with('error', 'Coupon is invalid or expired.');
+            // ❌ Invalid or expired coupon
+            return back()->with('coupon_error', 'Your coupon is not valid.');
         }
 
         // 💾 Store coupon data in session
         Session::put('coupon', [
             'code' => $coupon->code,
-            'discount_type' => $coupon->type, // changed from discount_type → type
-            'discount_value' => $coupon->value, // changed from discount_value → value
+            'discount_type' => $coupon->type,  // 'fixed' or 'percent'
+            'discount_value' => $coupon->value,
         ]);
 
         return back()->with('success', 'Coupon applied successfully!');
@@ -52,7 +51,7 @@ class CouponController extends Controller
             return back()->with('success', 'Coupon removed successfully.');
         }
 
-        return back()->with('error', 'No coupon applied.');
+        return back()->with('coupon_error', 'No coupon applied.');
     }
 
     /**

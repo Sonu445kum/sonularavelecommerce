@@ -136,6 +136,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout/stripe-success', [CheckoutController::class, 'stripeSuccess'])->name('checkout.stripe.success');
     Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
+    Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+    Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
 
     // 📦 Orders
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
@@ -235,7 +238,7 @@ Route::middleware(['web', 'auth', 'admin'])
         Route::post('/', [CategoryController::class, 'store'])->name('store');
         Route::get('/{id}/edit', [CategoryController::class, 'edit'])->name('edit');
         Route::put('/{id}', [CategoryController::class, 'update'])->name('update');
-        Route::delete('/{id}', [CategoryController::class, 'destroy'])->name('destroy');
+        Route::delete('/{category}', [CategoryController::class, 'destroy'])->name('destroy');
     });
 
 

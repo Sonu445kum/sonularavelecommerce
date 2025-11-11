@@ -29,27 +29,30 @@
         </div>
     </div>
 
-  @php
-    $shipping = $order->shipping_info;
-@endphp
+    {{-- Shipping Information --}}
+    @php
+        $shipping = $order->shipping ?? $order->address ?? null;
+    @endphp
 
-@if($shipping)
-    <p>
-        <strong>{{ $shipping->name ?? 'N/A' }}</strong><br>
-        {{ $shipping->address_line ?? '' }}<br>
-        {{ $shipping->city ?? '' }} - {{ $shipping->postalcode ?? '' }}<br>
-        <strong>Phone:</strong> {{ $shipping->phone ?? 'N/A' }}<br>
-        <strong>Label:</strong> {{ $shipping->label ?? 'N/A' }}
-    </p>
-@else
-    <p class="text-muted">No shipping address provided.</p>
-@endif
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Shipping Address</h5>
+            @if($shipping)
+                <p>
+                    <strong>{{ $shipping->name ?? 'N/A' }}</strong><br>
+                    {{ $shipping->address_line1 ?? '' }}<br>
+                    {{ $shipping->city ?? '' }} - {{ $shipping->postal_code ?? '' }}<br>
+                    {{ $shipping->state ?? '' }}<br>
+                    <strong>Phone:</strong> {{ $shipping->phone ?? 'N/A' }}<br>
+                    <strong>Label:</strong> {{ $shipping->label ?? 'N/A' }}
+                </p>
+            @else
+                <p class="text-muted">No shipping address provided.</p>
+            @endif
+        </div>
+    </div>
 
-
-
-
-
-    {{-- Order Items Table --}}
+    {{-- Ordered Products --}}
     <div class="card mb-4 shadow-sm">
         <div class="card-body">
             <h5 class="card-title">Items in this Order</h5>
@@ -59,22 +62,33 @@
                     <tr>
                         <th>#</th>
                         <th>Product</th>
-                        <th>Price (₹)</th>
+                        <th>Image</th>
+                        <th>Unit Price (₹)</th>
                         <th>Quantity</th>
                         <th>Subtotal (₹)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($order->orderItems as $index => $item)
-                        @php 
-                            $itemPrice = $item->price ?? ($item->product->price ?? 0);
+                    @foreach($order->items as $index => $item)
+                        @php
+                            $unitPrice = $item->unit_price ?? ($item->product->price ?? 0);
+                            $subtotal = $unitPrice * ($item->quantity ?? 1);
+
+                            $imageUrl = $item->product_image ?? ($item->product->featured_image ?? null);
+                            if ($imageUrl && !str_starts_with($imageUrl, 'http')) {
+                                $imageUrl = asset('storage/' . ltrim($imageUrl, '/'));
+                            }
+                            $imageUrl = $imageUrl ?? asset('images/default-product.jpg');
+
+                            $productName = $item->product_name ?? $item->product->title ?? $item->product->name ?? 'Deleted Product';
                         @endphp
                         <tr>
                             <td>{{ $index + 1 }}</td>
-                            <td>{{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}</td>
-                            <td>₹{{ number_format($itemPrice, 2) }}</td>
+                            <td>{{ $productName }}</td>
+                            <td><img src="{{ $imageUrl }}" alt="{{ $productName }}" class="img-fluid" style="max-width: 60px;"></td>
+                            <td>₹{{ number_format($unitPrice, 2) }}</td>
                             <td>{{ $item->quantity }}</td>
-                            <td>₹{{ number_format($item->calculated_subtotal ?? ($itemPrice * $item->quantity), 2) }}</td>
+                            <td>₹{{ number_format($subtotal, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -82,11 +96,10 @@
 
             {{-- Totals --}}
             <div class="text-end mt-3">
-                <h5><strong>Subtotal:</strong> ₹{{ number_format($order->calculated_subtotal ?? 0, 2) }}</h5>
-                <h5><strong>Shipping:</strong> ₹{{ number_format($order->calculated_shipping ?? 0, 2) }}</h5>
-                <h5><strong>Tax:</strong> ₹{{ number_format($order->calculated_tax ?? 0, 2) }}</h5>
-                <h5><strong>Discount:</strong> -₹{{ number_format($order->calculated_discount ?? 0, 2) }}</h5>
-                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->calculated_total ?? 0, 2) }}</h4>
+                <h5><strong>Subtotal:</strong> ₹{{ number_format($order->subtotal ?? 0, 2) }}</h5>
+                <h5><strong>Shipping:</strong> ₹{{ number_format($order->shipping ?? 0, 2) }}</h5>
+                <h5><strong>Discount:</strong> -₹{{ number_format($order->discount ?? 0, 2) }}</h5>
+                <h4 class="text-success"><strong>Grand Total:</strong> ₹{{ number_format($order->total ?? 0, 2) }}</h4>
             </div>
         </div>
     </div>

@@ -42,7 +42,7 @@
                             <button 
                                 class="btn btn-sm btn-danger delete-category" 
                                 data-id="{{ $category->id }}" 
-                                data-url="{{ route('admin.categories.destroy', $category->id) }}">
+                                data-url="{{ route('admin.categories.destroy', $category) }}">
                                 <i class="bi bi-trash"></i> Delete
                             </button>
                         </td>
@@ -75,15 +75,17 @@
     @endif
 </div>
 
-{{-- ✅ Delete Without Page Reload --}}
+{{-- ==========================
+     ✅ AJAX Delete Category
+========================== --}}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const deleteButtons = document.querySelectorAll('.delete-category');
 
     deleteButtons.forEach(button => {
         button.addEventListener('click', function () {
-            const categoryId = this.getAttribute('data-id');
-            const url = this.getAttribute('data-url');
+            const categoryId = this.dataset.id;
+            const url = this.dataset.url;
             const row = document.getElementById(`category-row-${categoryId}`);
 
             if (!confirm('⚠️ Are you sure you want to delete this category?')) return;
@@ -109,16 +111,39 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert.textContent = data.message;
                     document.querySelector('.container').prepend(alert);
 
-                    // Hide after 3 seconds
                     setTimeout(() => {
                         alert.classList.add('fade');
                         setTimeout(() => alert.remove(), 500);
                     }, 3000);
+
+                    // ✅ Update Products page category dropdown
+                    const categorySelects = document.querySelectorAll('select[name="category"]');
+                    if (categorySelects.length > 0) {
+                        fetch('/api/categories')
+                            .then(res => res.json())
+                            .then(categories => {
+                                categorySelects.forEach(select => {
+                                    const selectedValue = select.value; // keep current selection
+                                    select.innerHTML = `<option value="">All Categories</option>`;
+                                    categories.forEach(cat => {
+                                        const option = document.createElement('option');
+                                        option.value = cat.slug;
+                                        option.textContent = cat.name;
+                                        if (selectedValue === cat.slug) option.selected = true;
+                                        select.appendChild(option);
+                                    });
+                                });
+                            });
+                    }
+
                 } else {
-                    alert('❌ Something went wrong!');
+                    alert('❌ ' + data.message);
                 }
             })
-            .catch(() => alert('⚠️ Failed to delete category! Please try again.'));
+            .catch(err => {
+                console.error(err);
+                alert('⚠️ Failed to delete category! Please try again.');
+            });
         });
     });
 });

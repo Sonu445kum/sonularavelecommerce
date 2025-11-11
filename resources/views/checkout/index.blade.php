@@ -7,62 +7,108 @@
 
     <h2 class="mb-4 fw-bold">Checkout</h2>
 
-    {{-- ❌ Show errors --}}
+    {{-- Display validation errors --}}
     @if($errors->any())
         <div class="alert alert-danger">
-            @foreach($errors->all() as $error) <div>{{ $error }}</div> @endforeach
+            @foreach($errors->all() as $error) 
+                <div>{{ $error }}</div> 
+            @endforeach
         </div>
     @endif
 
-    {{-- ✅ Success message --}}
+    {{-- Display success message --}}
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
 
     <div class="row g-4">
 
-       {{-- 📦 Cart Items --}}
-<div class="col-lg-7">
-    <div class="card border-0 shadow-sm rounded-4">
-        <div class="card-header bg-light fw-bold fs-5">Your Cart</div>
-        <div class="card-body">
+        {{-- Cart Items --}}
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-light fw-bold fs-5">Your Cart</div>
+                <div class="card-body">
 
-            @if(isset($cartItems) && $cartItems->isNotEmpty())
-                @foreach ($cartItems as $item)
                     @php
-                        $product = $item->product ?? null;
-                        $image = $product && $product->images && $product->images->first()
-                            ? $product->images->first()->path
-                            : 'images/no-image.png';
+                        // Use Cart subtotal and items from controller
+                        $subtotal = $cart->subtotal ?? 0;
+                        $cartItems = $cart->items ?? collect([]);
                     @endphp
 
-                    <div class="d-flex align-items-center mb-3 border-bottom pb-2">
-                        <img src="{{ asset($image) }}" 
-                             class="rounded-3 me-3" 
-                             style="width: 70px; height: 70px; object-fit: cover;" 
-                             alt="{{ $product->title ?? 'Product' }}">
-                        <div class="flex-grow-1">
-                            <h6 class="fw-semibold mb-1">{{ $product->title ?? 'Product Name' }}</h6>
-                            <p class="text-muted mb-1">Qty: {{ $item->quantity ?? 1 }}</p>
-                            <p class="fw-bold mb-0">₹{{ number_format(($item->price ?? 0) * ($item->quantity ?? 1), 2) }}</p>
-                        </div>
-                    </div>
-                @endforeach
+                    @if($cartItems->isNotEmpty())
+                        @foreach ($cartItems as $item)
+                            @php
+                                $product = $item->product ?? null;
 
-                <div class="text-end fw-bold fs-5 mt-3">
-                    Subtotal: ₹{{ number_format($cartItems->sum(fn($it) => ($it->price ?? 0) * ($it->quantity ?? 1)), 2) }}
+                                // Image handling
+                                if (!empty($item->product->featured_image_url)) {
+                                    $image = $item->product->featured_image_url;
+                                } elseif (!empty($item->product->image) && file_exists(public_path('storage/'.$item->product->image))) {
+                                    $image = asset('storage/'.$item->product->image);
+                                } else {
+                                    $image = asset('images/no-image.png');
+                                }
+
+                                $price = $item->price ?? ($product->price ?? 0);
+                                $itemSubtotal = $price * ($item->quantity ?? 1);
+                            @endphp
+
+                            <div class="d-flex align-items-center mb-3 border-bottom pb-2">
+                                <img src="{{ $image }}" 
+                                     class="rounded-3 me-3" 
+                                     style="width: 70px; height: 70px; object-fit: cover;" 
+                                     alt="{{ $product->name ?? $item->product_name ?? 'Product' }}">
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-semibold mb-1">{{ $product->name ?? $item->product_name ?? 'Product Name' }}</h6>
+                                    <p class="text-muted mb-1">Qty: {{ $item->quantity ?? 1 }}</p>
+                                    <p class="fw-bold mb-0">₹{{ number_format($itemSubtotal, 2) }}</p>
+                                </div>
+                            </div>
+                        @endforeach
+
+                        <div class="text-end fw-bold fs-5 mt-3">
+                            Subtotal: ₹{{ number_format($subtotal, 2) }}
+                        </div>
+                    @else
+                        <p class="text-muted text-center mb-0">Your cart is empty.</p>
+                    @endif
+
                 </div>
-            @else
-                <p class="text-muted text-center mb-0">Your cart is empty.</p>
+            </div>
+        </div>
+
+        {{-- Shipping, Payment & Coupon Summary --}}
+        <div class="col-lg-5">
+
+            @php
+                $coupon = session('coupon');
+                $discount = 0;
+
+                // Calculate discount if coupon applied
+                if($coupon) {
+                    if($coupon['discount_type'] === 'fixed') $discount = $coupon['discount_value'];
+                    elseif($coupon['discount_type'] === 'percent') $discount = ($subtotal * $coupon['discount_value']) / 100;
+                }
+
+                $shipping = 50;
+                $total = max($subtotal - $discount + $shipping, 0);
+            @endphp
+
+            {{-- Coupon banner --}}
+            @if($coupon)
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-3 rounded mb-4">
+                    ✅ Coupon "<strong>{{ $coupon['code'] }}</strong>" applied successfully! 
+                    <form action="{{ route('coupon.remove') }}" method="POST" class="inline">
+                        @csrf
+                        <button type="submit" class="text-red-600 font-medium ml-2 hover:underline">
+                            Remove
+                        </button>
+                    </form>
+                </div>
             @endif
 
-        </div>
-    </div>
-</div>
-
-        {{-- 🏠 Shipping & Payment --}}
-        <div class="col-lg-5">
-            <form action="{{ route('checkout.process') }}" method="POST" class="card border-0 shadow-sm rounded-4 p-4">
+            {{-- Checkout Form --}}
+            <form action="{{ route('checkout.process') }}" method="POST" class="card border-0 shadow-sm rounded-4 p-4 mt-3">
                 @csrf
 
                 <h5 class="mb-3 fw-bold">Shipping Details</h5>
@@ -114,6 +160,11 @@
                 <div class="mb-3 form-check">
                     <input type="radio" name="payment_method" id="card" value="card" class="form-check-input">
                     <label for="card" class="form-check-label">Card / Online Payment</label>
+                </div>
+
+                {{-- Total Amount (from Cart) --}}
+                <div class="mb-3 fw-bold fs-5 text-end">
+                    Total: ₹{{ number_format($total, 2) }}
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 mt-3">Place Order</button>
