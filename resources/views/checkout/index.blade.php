@@ -30,7 +30,7 @@
                 <div class="card-body">
 
                     @php
-                        // Use Cart subtotal and items from controller
+                        // Get cart subtotal and items
                         $subtotal = $cart->subtotal ?? 0;
                         $cartItems = $cart->items ?? collect([]);
                     @endphp
@@ -162,7 +162,7 @@
                     <label for="card" class="form-check-label">Card / Online Payment</label>
                 </div>
 
-                {{-- Total Amount (from Cart) --}}
+                {{-- Total Amount --}}
                 <div class="mb-3 fw-bold fs-5 text-end">
                     Total: ₹{{ number_format($total, 2) }}
                 </div>

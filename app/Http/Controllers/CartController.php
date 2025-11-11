@@ -89,45 +89,63 @@ class CartController extends Controller
     /**
      * 🔄 Update Quantity (AJAX Friendly)
      */
-    public function update(Request $request, $id)
-    {
-        $validated = $request->validate([
-            'quantity' => 'required|integer|min:1',
-        ]);
+  public function update(Request $request, $id)
+{
+    try {
+        $item = CartItem::with('product')->findOrFail($id); // eager load product
 
-        $cartItem = CartItem::findOrFail($id);
-        $product = $cartItem->product;
+        $quantity = intval($request->quantity);
+        if ($quantity < 1) $quantity = 1;
 
-        $oldQty = $cartItem->quantity;
-        $newQty = $validated['quantity'];
-        $difference = $newQty - $oldQty;
+        $item->quantity = $quantity;
+        $item->save();
 
-        // ✅ Adjust stock
-        if ($difference > 0) {
-            if ($product->stock < $difference) {
-                return response()->json([
-                    'status' => false,
-                    'message' => '⚠️ Only ' . $product->stock . ' more items left!',
-                ]);
-            }
-            $product->decrement('stock', $difference);
-        } elseif ($difference < 0) {
-            $product->increment('stock', abs($difference));
-        }
+        // use actual product price
+        $price = $item->product->price ?? 0;
+        $itemSubtotal = $price * $quantity;
 
-        $cartItem->update(['quantity' => $newQty]);
-
-        $cart = $cartItem->cart;
-        $cart->update(['subtotal' => $cart->calculateSubtotal()]);
-
-        Session::put('last_selected_quantity_' . $cartItem->product_id, $newQty);
+        $cartTotal = CartItem::with('product')->get()->sum(function($i){
+            return ($i->product->price ?? 0) * $i->quantity;
+        }) + 50; // shipping
 
         return response()->json([
-            'status' => true,
-            'item_total' => $cartItem->price * $newQty,
-            'cart_subtotal' => $cart->subtotal,
+            'success' => true,
+            'itemSubtotal' => $itemSubtotal,
+            'cartTotal' => $cartTotal
         ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
+
+
+
+// // CartController.php
+// public function updateQuantity(Request $request, $id)
+// {
+//     $cart = Cart::where('user_id', auth()->id())->firstOrFail();
+//     $item = $cart->items()->where('id', $id)->firstOrFail();
+
+//     $item->quantity = max(1, $request->quantity);
+//     $item->save();
+
+//     $itemSubtotal = $item->price * $item->quantity;
+//     $cartSubtotal = $cart->items()->sum(fn($i)=> $i->price * $i->quantity);
+//     $cartTotal = $cartSubtotal + 50; // shipping
+
+//     return response()->json([
+//         'success'=>true,
+//         'itemSubtotal'=>$itemSubtotal,
+//         'cartSubtotal'=>$cartSubtotal,
+//         'cartTotal'=>$cartTotal
+//     ]);
+// }
+
+
 
     /**
      * ❌ Remove Item from Cart (restore stock)
