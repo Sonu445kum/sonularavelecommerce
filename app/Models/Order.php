@@ -69,10 +69,10 @@ class Order extends Model
     }
 
     public function address()
-    {
-        // Returns Address model if address_id exists
-        return $this->belongsTo(\App\Models\Address::class, 'address_id');
-    }
+{
+    return $this->belongsTo(\App\Models\Address::class, 'address_id');
+}
+
     // ✅ Relationship to order items
     public function items()
     {

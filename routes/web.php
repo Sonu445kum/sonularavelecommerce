@@ -123,24 +123,21 @@ Route::middleware(['auth'])->group(function () {
     // 🛍️ Cart
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-    Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
-    Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
     Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 
     // 💳 Checkout
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout.index');
     Route::post('/checkout/apply-coupon', [CheckoutController::class, 'applyCoupon'])->name('checkout.applyCoupon');
     Route::post('/checkout/process', [CheckoutController::class, 'process'])->name('checkout.process');
-    Route::post('/apply-coupon', [CouponController::class, 'apply'])->name('coupon.apply');
     Route::post('/remove-coupon', [CouponController::class, 'remove'])->name('coupon.remove');
     Route::post('/checkout/stripe-success', [CheckoutController::class, 'stripeSuccess'])->name('checkout.stripe.success');
     Route::get('/checkout/success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
-    // web.php
     Route::post('/cart/{id}/update', [CartController::class, 'update'])->name('cart.update');
-
     Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
     Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
+    Route::post('/coupon/apply', [CouponController::class, 'apply'])->name('coupon.apply');
+    Route::post('/coupon/remove', [CouponController::class, 'remove'])->name('coupon.remove');
 
     // 📦 Orders
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');

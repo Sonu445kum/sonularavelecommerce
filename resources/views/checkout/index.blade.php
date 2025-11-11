@@ -66,9 +66,9 @@
                             </div>
                         @endforeach
 
-                        <div class="text-end fw-bold fs-5 mt-3">
+                        <!-- <div class="text-end fw-bold fs-5 mt-3">
                             Subtotal: ₹{{ number_format($subtotal, 2) }}
-                        </div>
+                        </div> -->
                     @else
                         <p class="text-muted text-center mb-0">Your cart is empty.</p>
                     @endif

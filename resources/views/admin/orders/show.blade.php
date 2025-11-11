@@ -29,28 +29,33 @@
         </div>
     </div>
 
-    {{-- Shipping Information --}}
-    @php
-        $shipping = $order->shipping ?? $order->address ?? null;
-    @endphp
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Shipping Address</h5>
-            @if($shipping)
-                <p>
-                    <strong>{{ $shipping->name ?? 'N/A' }}</strong><br>
-                    {{ $shipping->address_line1 ?? '' }}<br>
-                    {{ $shipping->city ?? '' }} - {{ $shipping->postal_code ?? '' }}<br>
-                    {{ $shipping->state ?? '' }}<br>
-                    <strong>Phone:</strong> {{ $shipping->phone ?? 'N/A' }}<br>
-                    <strong>Label:</strong> {{ $shipping->label ?? 'N/A' }}
-                </p>
-            @else
-                <p class="text-muted">No shipping address provided.</p>
-            @endif
-        </div>
-    </div>
+    <!-- @php
+    $shipping = $order->address ?? null;
+@endphp
+  <div class="card-body">
+    <h5 class="card-title">Shipping Address</h5>
+
+    {{-- Debug: Check what $order->address contains --}}
+    <pre>{{ print_r($order->address, true) }}</pre>
+
+    @if($shipping)
+        <p>
+            <strong>{{ $shipping->name ?? 'N/A' }}</strong><br>
+            {{ $shipping->address_line1 ?? '' }}<br>
+            {{ $shipping->city ?? '' }} - {{ $shipping->postal_code ?? '' }}<br>
+            {{ $shipping->state ?? '' }}<br>
+            <strong>Phone:</strong> {{ $shipping->phone ?? 'N/A' }}<br>
+            <strong>Label:</strong> {{ $shipping->label ?? 'N/A' }}
+        </p>
+    @else
+        <p class="text-muted">No shipping address provided.</p>
+    @endif -->
+<!-- </div> -->
+
+
+</div>
+
 
     {{-- Ordered Products --}}
     <div class="card mb-4 shadow-sm">

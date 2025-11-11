@@ -185,10 +185,10 @@ class CartController extends Controller
         return redirect()->back()->with('success', '🧹 Cart cleared and stock restored!');
     }
 
-    /**
-     * 💰 Apply Coupon Code
-     */
-    public function applyCoupon(Request $request)
+//     /**
+//      * 💰 Apply Coupon Code
+//      */
+  public function applyCoupon(Request $request)
     {
         $request->validate([
             'coupon_code' => 'required|string',
@@ -196,29 +196,63 @@ class CartController extends Controller
 
         $code = $request->coupon_code;
 
-        $validCoupons = [
-            'SAVE50' => ['discount_type' => 'fixed', 'discount_value' => 50],
-            'OFF10'  => ['discount_type' => 'percent', 'discount_value' => 10],
-        ];
+        $coupon = Coupon::where('code', $code)->first();
 
-        if (!isset($validCoupons[$code])) {
-            return redirect()->back()->with('coupon_error', '❌ Invalid coupon code!');
+        if (!$coupon) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Invalid coupon code!'
+            ]);
         }
 
-        $coupon = $validCoupons[$code];
-        $coupon['code'] = $code;
+        if (!$coupon->is_active) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ This coupon is inactive!'
+            ]);
+        }
 
-        Session::put('coupon', $coupon);
+        if ($coupon->expires_at && now()->gt($coupon->expires_at)) {
+            return response()->json([
+                'success' => false,
+                'message' => '❌ Coupon has expired!'
+            ]);
+        }
 
-        return redirect()->back()->with('coupon_success', '✅ Coupon applied successfully!');
+        // Store in session
+        Session::put('coupon', [
+            'code' => $coupon->code,
+            'type' => $coupon->type,
+            'value' => $coupon->value,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => '✅ Coupon applied successfully!',
+            'coupon' => [
+                'code' => $coupon->code,
+                'type' => $coupon->type,
+                'value' => $coupon->value
+            ]
+        ]);
     }
 
     /**
-     * ❌ Remove Coupon
+     * Remove Coupon - AJAX Friendly
      */
-    public function removeCoupon()
+    public function removeCoupon(Request $request)
     {
-        Session::forget('coupon');
-        return redirect()->back()->with('success', '✅ Coupon removed successfully!');
+        if (Session::has('coupon')) {
+            Session::forget('coupon');
+            return response()->json([
+                'success' => true,
+                'message' => '✅ Coupon removed successfully!'
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => '❌ No coupon applied!'
+        ]);
     }
 }
