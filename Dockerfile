@@ -1,34 +1,38 @@
-# 1️ Base PHP image
+# 1️⃣ Base PHP image
 FROM php:8.4-fpm
 
-# 2️ Working directory
-WORKDIR /var/www/html
-
-# 3️ Install system dependencies
+# 2️⃣ Install system dependencies + Nginx
 RUN apt-get update && apt-get install -y \
+    nginx \
     git \
     unzip \
     libonig-dev \
     libzip-dev \
     zip \
     curl \
-    && docker-php-ext-install pdo_mysql mbstring zip
+    && docker-php-ext-install pdo_mysql mbstring zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 4️ Install Composer
-COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
+# 3️⃣ Set working directory
+WORKDIR /var/www/html
 
-# 5️ Copy project files
+# 4️⃣ Copy project files
 COPY . .
 
-# 6️ Install PHP dependencies
+# 5️⃣ Install Composer
+COPY --from=composer:2.6 /usr/bin/composer /usr/bin/composer
 RUN composer install --optimize-autoloader --no-dev
 
-# 7️ Set permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache
+# 6️⃣ Set permissions
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
 
-# 8️ Expose port for Render
-EXPOSE 1000
+# 7️⃣ Configure Nginx
+RUN rm /etc/nginx/sites-enabled/default
+COPY ./nginx.conf /etc/nginx/conf.d/default.conf
 
-# 9️ Start PHP-FPM
-CMD ["php-fpm", "-F", "-R"]
+# 8️⃣ Expose port 80 for Render
+EXPOSE 80
+
+# 9️⃣ Start both services
+CMD ["sh", "-c", "service nginx start && php-fpm -F"]
