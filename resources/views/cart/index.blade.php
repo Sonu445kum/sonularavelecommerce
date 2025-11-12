@@ -98,74 +98,96 @@
                     </tbody>
                 </table>
             </div>
+{{-- Cart Summary & Coupon --}}
+<div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
+    <a href="{{ route('products.index') }}" 
+       class="text-indigo-600 hover:underline flex items-center gap-1">
+        ← Continue Shopping
+    </a>
 
-            {{-- Cart Summary & Coupon --}}
-            <div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
-                <a href="{{ route('products.index') }}" 
-                   class="text-indigo-600 hover:underline flex items-center gap-1">
-                   ← Continue Shopping
-                </a>
+    <div class="bg-gray-50 p-6 rounded-xl shadow-md w-full md:w-1/3">
+        <h2 class="text-lg font-semibold text-gray-800 mb-4">Apply Coupon</h2>
 
-                <div class="bg-gray-50 p-6 rounded-xl shadow-md w-full md:w-1/3">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Apply Coupon</h2>
+        {{-- Coupon Form --}}
+        <form id="coupon-form" class="flex items-center gap-2 mb-4" onsubmit="return false;">
+            @csrf
+            <input type="text" name="coupon_code" placeholder="Enter coupon code"
+                   class="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                   required>
+            <button type="submit" 
+                    class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                Apply
+            </button>
+        </form>
 
-                    {{-- Coupon Form --}}
-                    <form id="coupon-form" class="flex items-center gap-2 mb-4" onsubmit="return false;">
-                    @csrf
-                    <input type="text" name="coupon_code" placeholder="Enter coupon code"
-                        class="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                        required>
-                    <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
-                        Apply
-                    </button>
-                    </form>
+        {{-- Remove Coupon --}}
+        @if(session('coupon'))
+            <button id="remove-coupon-btn" class="text-red-600 hover:underline mb-4">
+                Remove Coupon
+            </button>
+        @endif
+        <!-- ✅ Dynamic Discount Info (live updates shown here) -->
+        <!-- <div id="discountInfo" class="mt-3"></div> -->
 
-                    {{-- Applied Coupon & Remove --}}
-                    @if(session('coupon'))
-                        <button id="remove-coupon-btn" class="text-red-600 hover:underline mb-4">
-                            Remove Coupon
-                        </button>
-                    @endif
+        {{-- 🧮 Summary Section --}}
+    @php
+        // ✅ Recalculate subtotal dynamically from cart items
+        $subtotal = 0;
+        if (isset($cart) && $cart->items) {
+            foreach ($cart->items as $item) {
+                $subtotal += $item->product->price * $item->quantity;
+            }
+        }
 
-                    @php
-                        $subtotal = $cart->subtotal ?? 0;
-                        $discount = 0;
-                        $coupon = session('coupon');
-                        if($coupon){
-                            if($coupon['type'] === 'fixed') $discount = $coupon['value'];
-                            if($coupon['type'] === 'percent') $discount = ($subtotal * $coupon['value'])/100;
-                        }
-                        $shipping = 50;
-                        $total = max($subtotal - $discount + $shipping,0);
-                    @endphp
+        // ✅ Get coupon from session
+        $discount = 0;
+        $coupon = session('coupon');
+        $couponCode = $coupon['code'] ?? null;
 
-                    <div class="flex justify-between mb-2 text-gray-700">
-                        <span>Subtotal:</span>
-                        <span class="font-semibold" id="cart-subtotal">₹{{ number_format($subtotal, 2) }}</span>
-                    </div>
-                    @if($discount > 0)
-                        <div class="flex justify-between mb-2 text-green-700 font-medium">
-                            <span>Discount ({{ $coupon['code'] ?? '' }}):</span>
-                            <span id="cart-discount">-₹{{ number_format($discount, 2) }}</span>
-                        </div>
-                    @endif
-                    <div class="flex justify-between mb-2 text-gray-700">
-                        <span>Shipping:</span>
-                        <span class="font-semibold" id="cart-shipping">₹{{ number_format($shipping, 2) }}</span>
-                    </div>
-                    <div class="flex justify-between text-xl font-bold text-gray-900 border-t pt-3">
-                        <span>Total:</span>
-                        <span id="cart-total">₹{{ number_format($total, 2) }}</span>
-                    </div>
+        if ($coupon) {
+            if ($coupon['type'] === 'fixed') {
+                $discount = $coupon['value'];
+            } elseif ($coupon['type'] === 'percent') {
+                $discount = ($subtotal * $coupon['value']) / 100;
+            }
+        }
 
-                    <a href="{{ route('checkout.index') }}" 
-                       class="block text-center bg-indigo-600 text-white py-3 mt-6 rounded-lg hover:bg-indigo-700 transition">
-                       Proceed to Checkout →
-                    </a>
-                </div>
+        $shipping = 50;
+        $total = max(($subtotal - $discount) + $shipping, 0);
+    @endphp
+
+    <div class="border-t mt-4 pt-4 space-y-2 text-gray-700">
+        <div class="flex justify-between">
+            <span>Subtotal:</span>
+            <span class="font-semibold">₹{{ number_format($subtotal, 2) }}</span>
+        </div>
+
+        @if($discount > 0)
+            <div class="flex justify-between text-green-700 font-medium">
+                <span>Discount ({{ $couponCode }}):</span>
+                <span>-₹{{ number_format($discount, 2) }}</span>
             </div>
         @endif
-    @endguest
+
+        <div class="flex justify-between">
+            <span>Shipping:</span>
+            <span class="font-semibold">₹{{ number_format($shipping, 2) }}</span>
+        </div>
+
+        <div class="flex justify-between text-xl font-bold text-gray-900 border-t pt-3">
+            <span>Total:</span>
+            <span>₹{{ number_format($total, 2) }}</span>
+        </div>
+    </div>
+
+        <a href="{{ route('checkout.index') }}" 
+           class="block text-center bg-indigo-600 text-white py-3 mt-6 rounded-lg hover:bg-indigo-700 transition">
+           Proceed to Checkout →
+        </a>
+    </div>
+</div>
+@endif
+@endguest
 </div>
 
 {{-- Axios --}}
@@ -214,64 +236,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ================== Apply Coupon ==================
-   const couponForm = document.getElementById('coupon-form');
-    if(!couponForm) return;
+    const couponForm = document.getElementById("coupon-form");
+    const removeCouponBtn = document.getElementById("remove-coupon-btn");
+    const discountInfo = document.getElementById("discountInfo");
 
-    couponForm.addEventListener('submit', async function(e) {
-        e.preventDefault(); // ✅ Prevent default browser submit
+    // 🟩 Apply Coupon
+    if (couponForm) {
+    couponForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
 
         const input = this.querySelector('input[name="coupon_code"]');
         const code = input.value.trim();
 
-        if(!code){
-            showToast('❌ Please enter a coupon code!', 'error');
+        if (!code) {
+            alert("⚠️ Please enter a coupon code!");
             return;
         }
 
         try {
-            const res = await axios.post("{{ route('coupon.apply') }}", 
+            const res = await axios.post(
+                "{{ route('coupon.apply') }}",
                 { coupon_code: code },
-                { headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" } }
+                { headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" } }
             );
 
-            if(res.data.success){
-                showToast(`✅ ${res.data.message} (Code: ${res.data.coupon.code})`, 'success');
-                setTimeout(()=> window.location.reload(), 800);
-            } else {
-                showToast(`❌ ${res.data.message}`, 'error');
-            }
+            if (res.data.success) {
+                // ✅ Update UI instantly
+                discountInfo.innerHTML = `
+                    <p class="text-green-600 font-semibold">${res.data.message}</p>
+                    <p>💰 Discount: ₹${res.data.discount}</p>
+                    <p>🧾 New Total: ₹${res.data.new_total}</p>
+                `;
 
-        } catch(err){
-            if(err.response && err.response.data && err.response.data.errors){
-                Object.values(err.response.data.errors).flat().forEach(msg => showToast(`❌ ${msg}`, 'error'));
-            } else if(err.response && err.response.data && err.response.data.message){
-                showToast(`❌ ${err.response.data.message}`, 'error');
+                // 🔁 Auto refresh after 1s
+                setTimeout(() => window.location.reload(), 1000);
             } else {
-                showToast('❌ Something went wrong while applying the coupon!', 'error');
+                discountInfo.innerHTML = `
+                    <p class="text-red-600 font-semibold">${res.data.message}</p>
+                `;
             }
+        } catch (err) {
+            console.error("Apply coupon error:", err);
+            discountInfo.innerHTML = `
+                <p class="text-red-600 font-semibold">
+                    ${err.response?.data?.message || "❌ Invalid or expired coupon code."}
+                </p>
+            `;
         }
     });
+}
 
-    // ================== Remove Coupon ==================
-    const removeBtn = document.getElementById('remove-coupon-btn');
-    if(removeBtn){
-        removeBtn.addEventListener('click', async function(){
+    // 🟥 Remove Coupon
+    if (removeCouponBtn) {
+        removeCouponBtn.addEventListener("click", async () => {
             try {
-                const res = await axios.post("{{ route('coupon.remove') }}", {}, {
-                    headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" }
-                });
+                const res = await axios.post(
+                    "{{ route('coupon.remove') }}",
+                    {},
+                    { headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" } }
+                );
 
-                if(res.data.success){
-                    showToast(res.data.message, 'success');
-                    setTimeout(()=> window.location.reload(), 800);
+                if (res.data.success) {
+                    discountInfo.innerHTML = `
+                        <p class="text-green-600 font-semibold">${res.data.message}</p>
+                    `;
+                    // Optionally refresh totals or reload
+                    setTimeout(() => window.location.reload(), 800);
                 } else {
-                    showToast(res.data.message, 'error');
+                    discountInfo.innerHTML = `
+                        <p class="text-red-600 font-semibold">${res.data.message}</p>
+                    `;
                 }
-
-            } catch(err){
-                console.error('Remove coupon error:', err);
-                showToast('❌ Something went wrong while removing the coupon!', 'error');
+            } catch (err) {
+                console.error("Remove coupon error:", err);
+                discountInfo.innerHTML = `
+                    <p class="text-red-600 font-semibold">Something went wrong while removing coupon!</p>
+                `;
             }
         });
     }

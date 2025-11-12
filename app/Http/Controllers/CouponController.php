@@ -5,83 +5,93 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Coupon;
 use Illuminate\Support\Facades\Session;
+use Carbon\Carbon;
 
 class CouponController extends Controller
 {
     /**
-     * ✅ Apply a coupon code to the current user's cart (AJAX ready).
+     * ✅ Apply a coupon code to the current user's cart (AJAX + Blade compatible)
      */
     public function apply(Request $request)
-    {
-        $request->validate([
-            'code' => 'required|string',
-        ]);
+{
+    $request->validate([
+        'coupon_code' => 'required|string'
+    ]);
 
-        // 🔍 Find the active & valid coupon
-        $coupon = Coupon::where('code', $request->code)
-            ->where('is_active', true)
-            ->where(function ($query) {
-                $query->whereNull('expires_at')
-                      ->orWhere('expires_at', '>=', now());
-            })
-            ->first();
+    $code = strtolower(trim($request->input('coupon_code')));
 
-        if (!$coupon) {
-            // ❌ Invalid or expired coupon
-            if($request->ajax()){
-                return response()->json([
-                    'success' => false,
-                    'message' => '❌ Your coupon is not valid or expired.'
-                ], 404);
-            }
-            return back()->with('coupon_error', 'Your coupon is not valid.');
-        }
+    $coupon = \App\Models\Coupon::whereRaw('LOWER(code) = ?', [$code])
+        ->where('is_active', 1)
+        ->where(function ($query) {
+            $query->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+        })
+        ->first();
 
-        // 💾 Store coupon data in session
-        $couponData = [
-            'code' => $coupon->code,
-            'discount_type' => $coupon->type,  // 'fixed' or 'percent'
-            'discount_value' => $coupon->value,
-        ];
-        Session::put('coupon', $couponData);
-
-        if($request->ajax()){
-            return response()->json([
-                'success' => true,
-                'message' => '✅ Coupon applied successfully!',
-                'coupon' => $couponData
-            ]);
-        }
-
-        return back()->with('success', 'Coupon applied successfully!');
+    if (!$coupon) {
+        return response()->json([
+            'success' => false,
+            'message' => '❌ Invalid, inactive, or expired coupon code.'
+        ], 400);
     }
 
+    // 💾 Save coupon in session
+    session([
+        'coupon' => [
+            'code'  => $coupon->code,
+            'type'  => $coupon->type,
+            'value' => $coupon->value,
+        ]
+    ]);
+
+    // 🧮 Get current cart total (replace with your logic)
+    $cartTotal = \App\Models\CartItem::where('user_id', auth()->id())->sum('total_price');
+
+    // 💸 Apply discount
+    if ($coupon->type === 'percent') {
+        $discountAmount = ($cartTotal * $coupon->value) / 100;
+    } else {
+        $discountAmount = min($coupon->value, $cartTotal); // fixed discount, not more than total
+    }
+
+    $newTotal = $cartTotal - $discountAmount;
+
+    return response()->json([
+        'success' => true,
+        'message' => "✅ Coupon '{$coupon->code}' applied successfully!",
+        'discount' => number_format($discountAmount, 2),
+        'new_total' => number_format($newTotal, 2)
+    ]);
+}
+
+
+
     /**
-     * 🧹 Remove the applied coupon (AJAX ready).
+     * ❌ Remove the applied coupon (AJAX + Blade compatible)
      */
     public function remove(Request $request)
     {
         if (Session::has('coupon')) {
             Session::forget('coupon');
 
-            if($request->ajax()){
-                return response()->json([
-                    'success' => true,
-                    'message' => '✅ Coupon removed successfully!'
-                ]);
-            }
+            $response = [
+                'success' => true,
+                'message' => '✅ Coupon removed successfully!'
+            ];
 
-            return back()->with('success', 'Coupon removed successfully.');
+            return $request->ajax()
+                ? response()->json($response)
+                : back()->with('success', $response['message']);
         }
 
-        if($request->ajax()){
-            return response()->json([
-                'success' => false,
-                'message' => '❌ No coupon applied.'
-            ], 404);
-        }
+        $response = [
+            'success' => false,
+            'message' => '❌ No coupon applied.'
+        ];
 
-        return back()->with('coupon_error', 'No coupon applied.');
+        return $request->ajax()
+            ? response()->json($response, 404)
+            : back()->with('error', $response['message']);
     }
 
     /**
@@ -99,10 +109,10 @@ class CouponController extends Controller
         $coupon = Session::get('coupon');
         $discount = 0;
 
-        if ($coupon['discount_type'] === 'fixed') {
-            $discount = $coupon['discount_value'];
-        } elseif ($coupon['discount_type'] === 'percent') {
-            $discount = ($cartTotal * $coupon['discount_value']) / 100;
+        if (($coupon['type'] ?? '') === 'fixed') {
+            $discount = $coupon['value'] ?? 0;
+        } elseif (($coupon['type'] ?? '') === 'percent') {
+            $discount = ($cartTotal * ($coupon['value'] ?? 0)) / 100;
         }
 
         return min($discount, $cartTotal); // prevent negative totals

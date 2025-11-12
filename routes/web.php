@@ -135,7 +135,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/checkout/cancel', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
     Route::post('/cart/{id}/update', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
-    Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
+    // Route::post('/coupon/apply', [CartController::class, 'applyCoupon'])->name('coupon.apply');
     Route::post('/coupon/apply', [CouponController::class, 'apply'])->name('coupon.apply');
     Route::post('/coupon/remove', [CouponController::class, 'remove'])->name('coupon.remove');
 
@@ -315,9 +315,6 @@ Route::middleware(['web', 'auth', 'admin'])
     });
 
 
-
-
-//
 // =======================
 // ⚠️ FALLBACK (404 PAGE)
 // =======================

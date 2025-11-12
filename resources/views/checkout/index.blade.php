@@ -81,18 +81,21 @@
         <div class="col-lg-5">
 
             @php
-                $coupon = session('coupon');
-                $discount = 0;
+        $coupon = session('coupon');
+        $discount = 0;
 
-                // Calculate discount if coupon applied
-                if($coupon) {
-                    if($coupon['discount_type'] === 'fixed') $discount = $coupon['discount_value'];
-                    elseif($coupon['discount_type'] === 'percent') $discount = ($subtotal * $coupon['discount_value']) / 100;
-                }
+        // ✅ Coupon Discount Calculation
+        if ($coupon && isset($coupon['type'], $coupon['value'])) {
+            if ($coupon['type'] === 'fixed') {
+                $discount = $coupon['value'];
+            } elseif ($coupon['type'] === 'percent') {
+                $discount = ($subtotal * $coupon['value']) / 100;
+            }
+        }
 
-                $shipping = 50;
-                $total = max($subtotal - $discount + $shipping, 0);
-            @endphp
+        $shipping = 50;
+        $total = max($subtotal - $discount + $shipping, 0);
+    @endphp
 
             {{-- Coupon banner --}}
             @if($coupon)
