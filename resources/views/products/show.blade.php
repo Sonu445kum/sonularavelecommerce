@@ -27,28 +27,28 @@
 
         {{-- 🖼️ Gallery --}}
         <div class="col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 p-3">
-                <div class="text-center">
-                    <img id="mainImage" 
-                         src="{{ isset($allImages[0]) ? asset($allImages[0]) : asset('images/no-image.png') }}" 
-                         class="img-fluid rounded-4" 
-                         style="max-height: 450px; object-fit: contain;" 
-                         alt="{{ $product->title }}">
-                </div>
-
-                @if (!empty($allImages))
-                    <div class="d-flex flex-wrap justify-content-center gap-2 mt-3">
-                        @foreach ($allImages as $img)
-                            <img src="{{ asset($img) }}" 
-                                 onclick="changeMainImage('{{ asset($img) }}')" 
-                                 class="img-thumbnail rounded-3 gallery-thumb" 
-                                 style="width: 90px; height: 90px; cursor: pointer; object-fit: cover;"
-                                 alt="Gallery Image">
-                        @endforeach
-                    </div>
-                @endif
-            </div>
+        <div class="card border-0 shadow-sm rounded-4 p-3">
+        <div class="text-center">
+            <img id="mainImage" 
+                 src="{{ isset($allImages[0]) ? asset($allImages[0]) : asset('images/no-image.png') }}" 
+                 class="img-fluid rounded-4 main-product-img"
+                 alt="{{ $product->title }}">
         </div>
+
+        @if (!empty($allImages))
+            <div class="d-flex justify-content-center gap-2 mt-3 flex-wrap gallery-thumbs">
+                @foreach ($allImages as $img)
+                    <img src="{{ asset($img) }}" 
+                         onclick="changeMainImage('{{ asset($img) }}', this)" 
+                         class="img-thumbnail rounded-3 gallery-thumb" 
+                         alt="Gallery Image">
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+
+
 
         {{-- 🧾 Product Info --}}
         <div class="col-md-6">
@@ -415,6 +415,73 @@
 
 <style>
 /* Review Card Hover */
+//* ===== Product Main Image ===== */
+.main-product-img {
+    width: 100%;
+    max-width: 450px;
+    height: 450px;
+    object-fit: contain;
+    border-radius: 12px;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+.main-product-img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+/* ===== Gallery Thumbnails ===== */
+.gallery-thumbs {
+    display: flex;
+    justify-content: center;
+    margin-right:160px;
+    gap: 8px; /* consistent minimal gap */
+    flex-wrap: wrap; /* responsive wrap */
+}
+
+.gallery-thumb {
+    width: 120px;   /* uniform size for all thumbnails */
+    height: 120px;
+    
+    object-fit: cover; /* ensures image fits container without distortion */
+    cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+/* Hover and active effect */
+.gallery-thumb:hover {
+    transform: scale(1.05);
+}
+.gallery-thumb.active {
+    border-color: #0d6efd; /* highlight selected thumbnail */
+}
+
+/* Ensure no weird spacing */
+.gallery-thumbs img {
+    margin: 0;
+}
+
+
+/* Remove extra margin on images */
+.gallery-thumbs img {
+    margin: 0;
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 768px) {
+    .main-product-img {
+        height: auto;
+        max-width: 100%;
+    }
+    .gallery-thumb {
+        width: 60px;
+        height: 60px;
+    }
+}
+
+
+
 .review-card {
     transition: all 0.25s ease;
 }
@@ -681,23 +748,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ✅ Related Images - Flipkart Style Gallery
-    window.changeMainImage = function (newSrc, thumbEl) {
-        const mainImage = document.getElementById('mainImage');
-        
-        // Smooth fade animation
-        mainImage.style.opacity = 0;
+    window.changeMainImage = function(newSrc, thumbEl) {
+    const mainImage = document.getElementById('mainImage');
 
-        setTimeout(() => {
-            mainImage.src = newSrc;
-            mainImage.style.opacity = 1;
-        }, 200);
+    // Smooth fade transition for main image
+    mainImage.style.transition = 'opacity 0.25s ease-in-out';
+    mainImage.style.opacity = 0;
 
-        // Highlight selected thumbnail
-        document.querySelectorAll('.gallery-thumb').forEach(img => {
-            img.classList.remove('border-primary');
-        });
-        thumbEl.classList.add('border-primary');
-    };
+    setTimeout(() => {
+        mainImage.src = newSrc;
+        mainImage.style.opacity = 1;
+    }, 150);
+
+    // Remove 'active' class from all thumbnails
+    document.querySelectorAll('.gallery-thumb').forEach(img => img.classList.remove('active'));
+
+    // Add 'active' class to clicked thumbnail
+    thumbEl.classList.add('active');
+};
+
+
 });
 
 
