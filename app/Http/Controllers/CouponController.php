@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Coupon;
-use App\Models\CartItem;
 use Illuminate\Support\Facades\Session;
 
 class CouponController extends Controller
@@ -31,15 +30,17 @@ class CouponController extends Controller
             ]);
         }
 
+        // Store coupon in session
         Session::put('coupon', [
             'code' => $coupon->code,
             'type' => $coupon->type,
             'value' => $coupon->value
         ]);
 
-        $cartSubtotal = CartItem::where('user_id', auth()->id())
-            ->get()
-            ->sum(fn($i) => $i->price * $i->quantity);
+        // Calculate cart subtotal properly
+        $cartSubtotal = auth()->user()->cart
+            ? auth()->user()->cart->items->sum(fn($i) => $i->price * $i->quantity)
+            : 0;
 
         $discount = self::calculateDiscount($cartSubtotal);
         $shipping = 50;
@@ -61,9 +62,10 @@ class CouponController extends Controller
     {
         Session::forget('coupon');
 
-        $cartSubtotal = CartItem::where('user_id', auth()->id())
-            ->get()
-            ->sum(fn($i) => $i->price * $i->quantity);
+        // Calculate cart subtotal properly
+        $cartSubtotal = auth()->user()->cart
+            ? auth()->user()->cart->items->sum(fn($i) => $i->price * $i->quantity)
+            : 0;
 
         $discount = 0;
         $shipping = 50;
@@ -80,7 +82,7 @@ class CouponController extends Controller
     }
 
     // ================= Helper =================
-   public static function calculateDiscount($cartSubtotal)
+    public static function calculateDiscount($cartSubtotal)
     {
         $coupon = Session::get('coupon', null);
         $discount = 0;

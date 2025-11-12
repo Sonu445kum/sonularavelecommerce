@@ -276,73 +276,83 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+    // apply coupon and remove
+    const couponForm = document.getElementById('coupon-form');
+                const couponInput = couponForm.querySelector('input[name="coupon_code"]');
+                const discountInfo = document.getElementById('discountInfo');
 
+                // Apply Coupon
+                couponForm.addEventListener('submit', function () {
+                    const code = couponInput.value.trim();
+                    if (!code) return alert('Please enter a coupon code!');
 
+                    fetch('/coupon/apply', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': couponForm.querySelector('input[name="_token"]').value
+                        },
+                        body: JSON.stringify({ coupon_code: code })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.success){
+                            // Show applied coupon info with X button
+                            discountInfo.innerHTML = `
+                                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-md flex justify-between items-center">
+                                    <span>Coupon Applied: <strong>${data.coupon.code}</strong> - Discount: ₹${data.discount}</span>
+                                    <button id="remove-coupon-btn" class="font-bold text-red-500 hover:text-red-700">&times;</button>
+                                </div>
+                            `;
 
-    // ======= Coupon Apply =======
-    const couponForm = document.getElementById("coupon-form");
-    const removeCouponBtn = document.getElementById("remove-coupon-btn");
-    const discountInfo = document.getElementById("discountInfo");
+                            // Clear input
+                            couponInput.value = '';
 
-    if(couponForm){
-        couponForm.addEventListener("submit", async function(e){
-            e.preventDefault();
-            const code = this.querySelector('input[name="coupon_code"]').value.trim();
-            if(!code) return alert('⚠️ Enter coupon code');
+                            // Add event listener for Remove button
+                            const removeBtn = document.getElementById('remove-coupon-btn');
+                            removeBtn.addEventListener('click', removeCoupon);
 
-            try {
-                const res = await axios.post("{{ route('coupon.apply') }}", { coupon_code: code }, {
-                    headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" }
+                            // Optional: Update cart totals dynamically if you have IDs
+                            if(document.getElementById('subtotal')) document.getElementById('subtotal').innerText = data.cartSubtotal;
+                            if(document.getElementById('discount')) document.getElementById('discount').innerText = data.discount;
+                            if(document.getElementById('shipping')) document.getElementById('shipping').innerText = data.shipping;
+                            if(document.getElementById('total')) document.getElementById('total').innerText = data.total;
+
+                        } else {
+                            alert(data.message);
+                        }
+                    })
+                    .catch(err => console.error('Coupon apply error:', err));
                 });
 
-                if(res.data.success){
-                    discountInfo.innerHTML = `<p class="text-green-600 font-semibold">${res.data.message}</p>`;
-                    const discountElem = document.getElementById('cart-discount');
-                    if(discountElem) discountElem.textContent = `-₹${res.data.discount.toFixed(2)}`;
+                // Remove Coupon function
+                function removeCoupon() {
+                    fetch('/coupon/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': couponForm.querySelector('input[name="_token"]').value
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if(data.success){
+                            discountInfo.innerHTML = ''; // Remove coupon display
 
-                    const cartTotalElem = document.getElementById('cart-total');
-                    if(cartTotalElem) cartTotalElem.textContent = `₹${res.data.newTotal.toFixed(2)}`;
-                    showToast(res.data.message, 'success');
-                } else {
-                    discountInfo.innerHTML = `<p class="text-red-600 font-semibold">${res.data.message}</p>`;
-                    showToast(res.data.message, 'error');
+                            // Update totals
+                            if(document.getElementById('subtotal')) document.getElementById('subtotal').innerText = data.cartSubtotal;
+                            if(document.getElementById('discount')) document.getElementById('discount').innerText = data.discount;
+                            if(document.getElementById('shipping')) document.getElementById('shipping').innerText = data.shipping;
+                            if(document.getElementById('total')) document.getElementById('total').innerText = data.total;
+                        }
+                    })
+                    .catch(err => console.error('Coupon remove error:', err));
                 }
 
-            } catch(err){
-                console.error("Coupon apply error:", err);
-                discountInfo.innerHTML = `<p class="text-red-600 font-semibold">❌ Something went wrong!</p>`;
-                showToast('❌ Coupon apply failed!', 'error');
-            }
-        });
-    }
+        
 
-    // ======= Coupon Remove =======
-    if(removeCouponBtn){
-        removeCouponBtn.addEventListener('click', async () => {
-            try {
-                const res = await axios.post("{{ route('coupon.remove') }}", {}, {
-                    headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" }
-                });
-                if(res.data.success){
-                    discountInfo.innerHTML = `<p class="text-green-600 font-semibold">${res.data.message}</p>`;
 
-                    const discountElem = document.getElementById('cart-discount');
-                    if(discountElem) discountElem.textContent = `-₹0.00`;
 
-                    const cartTotalElem = document.getElementById('cart-total');
-                    if(cartTotalElem) cartTotalElem.textContent = `₹${res.data.newTotal.toFixed(2)}`;
-                    showToast(res.data.message, 'success');
-                } else {
-                    discountInfo.innerHTML = `<p class="text-red-600 font-semibold">${res.data.message}</p>`;
-                    showToast(res.data.message, 'error');
-                }
-            } catch(err){
-                console.error("Coupon remove error:", err);
-                discountInfo.innerHTML = `<p class="text-red-600 font-semibold">❌ Something went wrong!</p>`;
-                showToast('❌ Coupon remove failed!', 'error');
-            }
-        });
-    }
 
 });
 </script>
