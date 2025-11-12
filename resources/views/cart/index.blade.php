@@ -84,110 +84,100 @@
                                     ₹{{ number_format($item->price * $item->quantity, 2) }}
                                 </td>
 
-                                <td class="p-4 text-center">
-                                    <form action="{{ route('cart.remove', $item->id) }}" method="POST" onsubmit="return confirm('Remove this item from cart?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="text-red-500 hover:text-red-700 font-medium transition">
-                                            Remove
-                                        </button>
-                                    </form>
-                                </td>
+                               <td class="p-4 text-center">
+                                <form class="remove-item-form" data-item-id="{{ $item->id }}" onsubmit="return false;">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-500 hover:text-red-700 font-medium transition">
+                                        Remove
+                                    </button>
+                                </form>
+                            </td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
-{{-- Cart Summary & Coupon --}}
-<div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
-    <a href="{{ route('products.index') }}" 
-       class="text-indigo-600 hover:underline flex items-center gap-1">
-        ← Continue Shopping
-    </a>
 
-    <div class="bg-gray-50 p-6 rounded-xl shadow-md w-full md:w-1/3">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Apply Coupon</h2>
+            {{-- Cart Summary & Coupon --}}
+            <div class="mt-8 flex flex-col md:flex-row justify-between items-start md:items-start gap-8">
+                <a href="{{ route('products.index') }}" 
+                   class="text-indigo-600 hover:underline flex items-center gap-1">
+                    ← Continue Shopping
+                </a>
 
-        {{-- Coupon Form --}}
-        <form id="coupon-form" class="flex items-center gap-2 mb-4" onsubmit="return false;">
-            @csrf
-            <input type="text" name="coupon_code" placeholder="Enter coupon code"
-                   class="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-indigo-400 focus:outline-none"
-                   required>
-            <button type="submit" 
-                    class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
-                Apply
-            </button>
-        </form>
+                <div class="bg-gray-50 p-6 rounded-xl shadow-md w-full md:w-1/3">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">Apply Coupon</h2>
 
-        {{-- Remove Coupon --}}
-        @if(session('coupon'))
-            <button id="remove-coupon-btn" class="text-red-600 hover:underline mb-4">
-                Remove Coupon
-            </button>
-        @endif
-        <!-- ✅ Dynamic Discount Info (live updates shown here) -->
-        <!-- <div id="discountInfo" class="mt-3"></div> -->
+                    {{-- Coupon Form --}}
+                    <form id="coupon-form" class="flex items-center gap-2 mb-4" onsubmit="return false;">
+                        @csrf
+                        <input type="text" name="coupon_code" placeholder="Enter coupon code"
+                               class="border border-gray-300 rounded-md p-2 w-full focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+                               required>
+                        <button type="submit" 
+                                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition">
+                            Apply
+                        </button>
+                    </form>
 
-        {{-- 🧮 Summary Section --}}
-    @php
-        // ✅ Recalculate subtotal dynamically from cart items
-        $subtotal = 0;
-        if (isset($cart) && $cart->items) {
-            foreach ($cart->items as $item) {
-                $subtotal += $item->product->price * $item->quantity;
-            }
-        }
+                    {{-- Remove Coupon --}}
+                    @if(session('coupon'))
+                        <button id="remove-coupon-btn" class="text-red-600 hover:underline mb-4">
+                            Remove Coupon
+                        </button>
+                    @endif
 
-        // ✅ Get coupon from session
-        $discount = 0;
-        $coupon = session('coupon');
-        $couponCode = $coupon['code'] ?? null;
+                    <div id="discountInfo" class="mt-3"></div>
 
-        if ($coupon) {
-            if ($coupon['type'] === 'fixed') {
-                $discount = $coupon['value'];
-            } elseif ($coupon['type'] === 'percent') {
-                $discount = ($subtotal * $coupon['value']) / 100;
-            }
-        }
+                    {{-- 🧮 Summary Section --}}
+                    @php
+                        $subtotal = $cart->items->sum(fn($item) => $item->price * $item->quantity);
+                        $discount = 0;
+                        $coupon = session('coupon');
+                        $couponCode = $coupon['code'] ?? null;
 
-        $shipping = 50;
-        $total = max(($subtotal - $discount) + $shipping, 0);
-    @endphp
+                        if ($coupon) {
+                            if ($coupon['type'] === 'fixed') $discount = $coupon['value'];
+                            elseif ($coupon['type'] === 'percent') $discount = ($subtotal * $coupon['value']) / 100;
+                        }
 
-    <div class="border-t mt-4 pt-4 space-y-2 text-gray-700">
-        <div class="flex justify-between">
-            <span>Subtotal:</span>
-            <span class="font-semibold">₹{{ number_format($subtotal, 2) }}</span>
-        </div>
+                        $shipping = 50;
+                        $total = max(($subtotal - $discount) + $shipping, 0);
+                    @endphp
 
-        @if($discount > 0)
-            <div class="flex justify-between text-green-700 font-medium">
-                <span>Discount ({{ $couponCode }}):</span>
-                <span>-₹{{ number_format($discount, 2) }}</span>
+                    <div class="border-t mt-4 pt-4 space-y-2 text-gray-700">
+                        <div class="flex justify-between">
+                            <span>Subtotal:</span>
+                            <span id="cart-subtotal" class="font-semibold">₹{{ number_format($subtotal, 2) }}</span>
+                        </div>
+
+                        @if($discount > 0)
+                            <div class="flex justify-between text-green-700 font-medium">
+                                <span>Discount ({{ $couponCode }}):</span>
+                                <span id="cart-discount">-₹{{ number_format($discount, 2) }}</span>
+                            </div>
+                        @endif
+
+                        <div class="flex justify-between">
+                            <span>Shipping:</span>
+                            <span class="font-semibold">₹{{ number_format($shipping, 2) }}</span>
+                        </div>
+
+                        <div class="flex justify-between text-xl font-bold text-gray-900 border-t pt-3">
+                            <span>Total:</span>
+                            <span id="cart-total">₹{{ number_format($total, 2) }}</span>
+                        </div>
+                    </div>
+
+                    <a href="{{ route('checkout.index') }}" 
+                       class="block text-center bg-indigo-600 text-white py-3 mt-6 rounded-lg hover:bg-indigo-700 transition">
+                       Proceed to Checkout →
+                    </a>
+                </div>
             </div>
         @endif
-
-        <div class="flex justify-between">
-            <span>Shipping:</span>
-            <span class="font-semibold">₹{{ number_format($shipping, 2) }}</span>
-        </div>
-
-        <div class="flex justify-between text-xl font-bold text-gray-900 border-t pt-3">
-            <span>Total:</span>
-            <span>₹{{ number_format($total, 2) }}</span>
-        </div>
-    </div>
-
-        <a href="{{ route('checkout.index') }}" 
-           class="block text-center bg-indigo-600 text-white py-3 mt-6 rounded-lg hover:bg-indigo-700 transition">
-           Proceed to Checkout →
-        </a>
-    </div>
-</div>
-@endif
-@endguest
+    @endguest
 </div>
 
 {{-- Axios --}}
@@ -196,122 +186,160 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 
-    // ================== Toast Function ==================
+    // ======= Toast =======
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
-        toast.className = `max-w-xs w-full ${
-            type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        } text-white px-4 py-3 rounded shadow-lg animate-fade-in`;
+        toast.className = `max-w-xs w-full ${type==='success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-3 rounded shadow-lg animate-fade-in`;
         toast.innerText = message;
         document.getElementById('toast-container').appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
     }
 
-    // ================== Quantity Update ==================
+    // ======= Quantity Update =======
     document.querySelectorAll('.decrement, .increment').forEach(btn => {
         btn.addEventListener('click', async function() {
             const itemId = this.dataset.itemId;
             const input = document.querySelector(`.quantity-input[data-item-id='${itemId}']`);
             let quantity = parseInt(input.value);
-            if(this.classList.contains('decrement') && quantity > 1) quantity--;
+            if(this.classList.contains('decrement') && quantity>1) quantity--;
             if(this.classList.contains('increment')) quantity++;
             input.value = quantity;
 
             try {
-                const res = await axios.post(`/cart/${itemId}/update`, { quantity: quantity }, {
+                const res = await axios.post(`/cart/${itemId}/update`, { quantity }, {
                     headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" }
                 });
-
                 if(res.data.success){
-                    input.closest('tr').querySelector('.subtotal-cell').textContent = `₹${res.data.itemSubtotal.toFixed(2)}`;
-                    document.getElementById('cart-total').textContent = `₹${res.data.cartTotal.toFixed(2)}`;
-                } else if(res.data.message) {
-                    showToast(`❌ ${res.data.message}`, 'error');
+                    const subtotalCell = input.closest('tr').querySelector('.subtotal-cell');
+                    if(subtotalCell) subtotalCell.textContent = `₹${res.data.itemSubtotal.toFixed(2)}`;
+
+                    const subtotalElem = document.getElementById('cart-subtotal');
+                    if(subtotalElem) subtotalElem.textContent = `₹${res.data.cartSubtotal.toFixed(2)}`;
+
+                    const cartTotalElem = document.getElementById('cart-total');
+                    if(cartTotalElem) cartTotalElem.textContent = `₹${res.data.total.toFixed(2)}`;
+
+                    const discountElem = document.getElementById('cart-discount');
+                    if(discountElem && res.data.discount > 0){
+                        discountElem.textContent = `-₹${res.data.discount.toFixed(2)}`;
+                    }
+
+                    showToast('✅ Quantity updated!');
                 }
 
             } catch(err){
                 console.error('Cart update error:', err);
-                showToast('❌ Something went wrong while updating cart!', 'error');
+                showToast('❌ Something went wrong!', 'error');
             }
         });
     });
 
+    // Remove items From the Card
+    document.querySelectorAll('.remove-item-form').forEach(form => {
+    form.addEventListener('submit', async function() {
+        if(!confirm('Remove this item from cart?')) return;
+
+        const itemId = this.dataset.itemId;
+        const token = this.querySelector('input[name="_token"]').value;
+
+        try {
+            const res = await axios.post(`/cart/remove/${itemId}`, {
+                _method: 'DELETE' // Laravel ko DELETE request samjhaye
+            }, {
+                headers: { 'X-CSRF-TOKEN': token }
+            });
+
+            if(res.status === 200){
+                // Remove the row from table
+                const row = this.closest('tr');
+                if(row) row.remove();
+
+                // Update cart totals if sent from backend (optional)
+                if(res.data.cartSubtotal !== undefined){
+                    const subtotalElem = document.getElementById('cart-subtotal');
+                    if(subtotalElem) subtotalElem.textContent = `₹${res.data.cartSubtotal.toFixed(2)}`;
+                }
+
+                if(res.data.total !== undefined){
+                    const totalElem = document.getElementById('cart-total');
+                    if(totalElem) totalElem.textContent = `₹${res.data.total.toFixed(2)}`;
+                }
+
+                showToast('🗑️ Item removed successfully!');
+            }
+
+        } catch(err){
+            console.error('Remove item error:', err);
+            showToast('❌ Failed to remove item', 'error');
+        }
+    });
+});
+
+
+
+
+
+    // ======= Coupon Apply =======
     const couponForm = document.getElementById("coupon-form");
     const removeCouponBtn = document.getElementById("remove-coupon-btn");
     const discountInfo = document.getElementById("discountInfo");
 
-    // 🟩 Apply Coupon
-    if (couponForm) {
-    couponForm.addEventListener("submit", async function (e) {
-        e.preventDefault();
+    if(couponForm){
+        couponForm.addEventListener("submit", async function(e){
+            e.preventDefault();
+            const code = this.querySelector('input[name="coupon_code"]').value.trim();
+            if(!code) return alert('⚠️ Enter coupon code');
 
-        const input = this.querySelector('input[name="coupon_code"]');
-        const code = input.value.trim();
-
-        if (!code) {
-            alert("⚠️ Please enter a coupon code!");
-            return;
-        }
-
-        try {
-            const res = await axios.post(
-                "{{ route('coupon.apply') }}",
-                { coupon_code: code },
-                { headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" } }
-            );
-
-            if (res.data.success) {
-                // ✅ Update UI instantly
-                discountInfo.innerHTML = `
-                    <p class="text-green-600 font-semibold">${res.data.message}</p>
-                    <p>💰 Discount: ₹${res.data.discount}</p>
-                    <p>🧾 New Total: ₹${res.data.new_total}</p>
-                `;
-
-                // 🔁 Auto refresh after 1s
-                setTimeout(() => window.location.reload(), 1000);
-            } else {
-                discountInfo.innerHTML = `
-                    <p class="text-red-600 font-semibold">${res.data.message}</p>
-                `;
-            }
-        } catch (err) {
-            console.error("Apply coupon error:", err);
-            discountInfo.innerHTML = `
-                <p class="text-red-600 font-semibold">
-                    ${err.response?.data?.message || "❌ Invalid or expired coupon code."}
-                </p>
-            `;
-        }
-    });
-}
-
-    // 🟥 Remove Coupon
-    if (removeCouponBtn) {
-        removeCouponBtn.addEventListener("click", async () => {
             try {
-                const res = await axios.post(
-                    "{{ route('coupon.remove') }}",
-                    {},
-                    { headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" } }
-                );
+                const res = await axios.post("{{ route('coupon.apply') }}", { coupon_code: code }, {
+                    headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" }
+                });
 
-                if (res.data.success) {
-                    discountInfo.innerHTML = `
-                        <p class="text-green-600 font-semibold">${res.data.message}</p>
-                    `;
-                    // Optionally refresh totals or reload
-                    setTimeout(() => window.location.reload(), 800);
+                if(res.data.success){
+                    discountInfo.innerHTML = `<p class="text-green-600 font-semibold">${res.data.message}</p>`;
+                    const discountElem = document.getElementById('cart-discount');
+                    if(discountElem) discountElem.textContent = `-₹${res.data.discount.toFixed(2)}`;
+
+                    const cartTotalElem = document.getElementById('cart-total');
+                    if(cartTotalElem) cartTotalElem.textContent = `₹${res.data.newTotal.toFixed(2)}`;
+                    showToast(res.data.message, 'success');
                 } else {
-                    discountInfo.innerHTML = `
-                        <p class="text-red-600 font-semibold">${res.data.message}</p>
-                    `;
+                    discountInfo.innerHTML = `<p class="text-red-600 font-semibold">${res.data.message}</p>`;
+                    showToast(res.data.message, 'error');
                 }
-            } catch (err) {
-                console.error("Remove coupon error:", err);
-                discountInfo.innerHTML = `
-                    <p class="text-red-600 font-semibold">Something went wrong while removing coupon!</p>
-                `;
+
+            } catch(err){
+                console.error("Coupon apply error:", err);
+                discountInfo.innerHTML = `<p class="text-red-600 font-semibold">❌ Something went wrong!</p>`;
+                showToast('❌ Coupon apply failed!', 'error');
+            }
+        });
+    }
+
+    // ======= Coupon Remove =======
+    if(removeCouponBtn){
+        removeCouponBtn.addEventListener('click', async () => {
+            try {
+                const res = await axios.post("{{ route('coupon.remove') }}", {}, {
+                    headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" }
+                });
+                if(res.data.success){
+                    discountInfo.innerHTML = `<p class="text-green-600 font-semibold">${res.data.message}</p>`;
+
+                    const discountElem = document.getElementById('cart-discount');
+                    if(discountElem) discountElem.textContent = `-₹0.00`;
+
+                    const cartTotalElem = document.getElementById('cart-total');
+                    if(cartTotalElem) cartTotalElem.textContent = `₹${res.data.newTotal.toFixed(2)}`;
+                    showToast(res.data.message, 'success');
+                } else {
+                    discountInfo.innerHTML = `<p class="text-red-600 font-semibold">${res.data.message}</p>`;
+                    showToast(res.data.message, 'error');
+                }
+            } catch(err){
+                console.error("Coupon remove error:", err);
+                discountInfo.innerHTML = `<p class="text-red-600 font-semibold">❌ Something went wrong!</p>`;
+                showToast('❌ Coupon remove failed!', 'error');
             }
         });
     }
@@ -320,10 +348,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-@keyframes fade-in {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+@keyframes fade-in { from {opacity:0; transform:translateY(-10px);} to{opacity:1; transform:translateY(0);} }
 .animate-fade-in { animation: fade-in 0.5s ease forwards; }
 </style>
+
 @endsection
