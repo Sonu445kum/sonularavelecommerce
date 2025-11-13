@@ -6,20 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            // Drop foreign key safely
+            // Drop foreign keys safely
             if (Schema::hasColumn('orders', 'user_id')) {
-                $table->dropForeign(['user_id']); // safer than hardcoding name
+                $table->dropForeign(['user_id']);
                 $table->dropColumn('user_id');
             }
 
-            // Drop other unused columns safely
-            foreach (['name','phone','pincode','address','address_id'] as $col) {
+            if (Schema::hasColumn('orders', 'address_id')) {
+                $table->dropForeign(['address_id']); // drop foreign key first
+                $table->dropColumn('address_id');
+            }
+
+            // Drop other unused columns
+            foreach (['name', 'phone', 'pincode', 'address'] as $col) {
                 if (Schema::hasColumn('orders', $col)) {
                     $table->dropColumn($col);
                 }
@@ -27,19 +29,21 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            // Add columns back in case of rollback
+            // Add columns back
             if (!Schema::hasColumn('orders', 'user_id')) {
                 $table->unsignedBigInteger('user_id')->nullable();
                 $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             }
 
-            foreach (['name','phone','pincode','address','address_id'] as $col) {
+            if (!Schema::hasColumn('orders', 'address_id')) {
+                $table->unsignedBigInteger('address_id')->nullable();
+                $table->foreign('address_id')->references('id')->on('addresses')->onDelete('cascade');
+            }
+
+            foreach (['name', 'phone', 'pincode', 'address'] as $col) {
                 if (!Schema::hasColumn('orders', $col)) {
                     $table->string($col)->nullable();
                 }

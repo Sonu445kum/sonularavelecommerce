@@ -12,8 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            // ✅ Rename column from 'read' to 'is_read'
-            $table->renameColumn('read', 'is_read');
+            // ✅ Rename column from 'read' to 'is_read' only if it exists
+            if (Schema::hasColumn('notifications', 'read')) {
+                $table->renameColumn('read', 'is_read');
+            }
         });
     }
 
@@ -23,8 +25,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            // ✅ Revert back if migration is rolled back
-            $table->renameColumn('is_read', 'read');
+            // ✅ Revert back if migration is rolled back, only if 'is_read' exists
+            if (Schema::hasColumn('notifications', 'is_read')) {
+                $table->renameColumn('is_read', 'read');
+            }
         });
     }
 };
