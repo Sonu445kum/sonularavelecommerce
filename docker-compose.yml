@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: new-ecommerce-app
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html
+      - ./storage:/var/www/html/storage
+      - ./bootstrap/cache:/var/www/html/bootstrap/cache
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8081
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: laravel_db
+      DB_USERNAME: root
+      DB_PASSWORD: secret
+    depends_on:
+      - db
+    command: >
+      sh -c "
+        until nc -z db 3306; do
+          echo 'Waiting for DB...';
+          sleep 3;
+        done;
+        php artisan config:clear &&
+        php artisan cache:clear &&
+        php artisan route:clear &&
+        php artisan migrate --force &&
+        php artisan db:seed --force &&
+        php-fpm
+      "
+
+  db:
+    image: mysql:8.0
+    container_name: new-ecommerce-db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: laravel_db
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ""
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:

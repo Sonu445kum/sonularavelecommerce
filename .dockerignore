@@ -1,0 +1,20 @@
+# Ignore Laravel runtime and build files
+/vendor
+/node_modules
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+
+# Ignore environment and git files
+.env
+.git
+.gitignore
+README.md
+docker-compose.yml
+
+# Ignore local configs
+*.log
+*.zip
+*.tar
+*.tar.gz
