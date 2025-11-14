@@ -39,9 +39,13 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
 # ----------------------------
-# Expose port for PHP-FPM
+# Ensure Laravel storage logs folder and log files exist
 # ----------------------------
-EXPOSE 9000
+RUN mkdir -p /var/www/html/storage/logs \
+    && touch /var/www/html/storage/logs/php-fpm.log \
+    && touch /var/www/html/storage/logs/queue.log \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 775 /var/www/html/storage
 
 # ----------------------------
 # Supervisor configuration
@@ -49,5 +53,12 @@ EXPOSE 9000
 # Ensure supervisor logs folder exists
 RUN mkdir -p /var/log/supervisor
 
+# ----------------------------
+# Expose port for PHP-FPM
+# ----------------------------
+EXPOSE 9000
+
+# ----------------------------
 # CMD to start supervisor (for queues, cron, etc.)
+# ----------------------------
 CMD ["supervisord", "-c", "/var/www/html/supervisord.conf"]
