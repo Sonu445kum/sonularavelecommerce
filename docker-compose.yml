@@ -1,16 +1,13 @@
-version: "3.9"
-
 services:
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: laravel_app
+    container_name: app   # <-- CHANGE THIS (important)
     working_dir: /var/www/html
     volumes:
       - .:/var/www/html
-      - ./storage:/var/www/html/storage   # persistent storage for uploads
     networks:
       - laravel
     depends_on:
@@ -18,12 +15,11 @@ services:
 
   web:
     image: nginx:alpine
-    container_name: laravel_web
+    container_name: web
     ports:
       - "8080:80"
     volumes:
       - .:/var/www/html
-      - ./storage:/var/www/html/storage
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
     networks:
       - laravel
@@ -32,13 +28,12 @@ services:
 
   db:
     image: mysql:8.0
-    container_name: laravel_db
-    restart: unless-stopped
+    container_name: db
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword      # ✅ correct way
-      MYSQL_DATABASE: laravel                # optional
-      MYSQL_USER: laraveluser                # regular user
-      MYSQL_PASSWORD: laravelpass            # regular user password
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laraveluser
+      MYSQL_PASSWORD: laravelpass
     ports:
       - "3306:3306"
     volumes:
