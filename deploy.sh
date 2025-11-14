@@ -4,7 +4,7 @@
 # Config - Change these
 # -----------------------------
 REPO_URL="https://github.com/username/your-laravel-repo.git"
-APP_DIR="/var/www/laravel_app"
+APP_DIR="/var/www/laravel_ap"
 ENV_FILE="$APP_DIR/.env"
 
 # -----------------------------
