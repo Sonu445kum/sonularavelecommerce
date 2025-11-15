@@ -10,6 +10,7 @@ services:
       - .:/var/www/html:cached          # Host folder, cached for speed
       - vendor:/var/www/html/vendor     # Vendor inside container
       - node_modules:/var/www/html/node_modules
+      - storage:/var/www/html/storage
     environment:
       APP_ENV: local
       APP_DEBUG: 'true'
@@ -54,6 +55,7 @@ volumes:
   dbdata:
   vendor:
   node_modules:
+  storage:
 
 networks:
   laravel:
