@@ -36,33 +36,45 @@
         </div>
     </div>
 
-    {{-- ✅ Shipping Address --}}
-    <div class="bg-white shadow-md rounded-xl p-6 mb-8">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Shipping Address</h2>
-        @if(!empty($order->name) || !empty($order->address) || !empty($order->address_id))
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
-                {{-- Left Side --}}
-                <div>
-                    <p><span class="font-semibold">Full Name:</span> {{ $order->name ?? ($order->shipping_address->name ?? 'N/A') }}</p>
-                    <p><span class="font-semibold">Phone:</span> {{ $order->phone ?? ($order->shipping_address->phone ?? 'N/A') }}</p>
-                    <p><span class="font-semibold">Email:</span> {{ $order->email ?? ($order->user->email ?? 'N/A') }}</p>
-                </div>
-                {{-- Right Side --}}
-                <div>
-                    <p><span class="font-semibold">Address:</span></p>
-                    <p>{{ $order->address ?? $order->shipping_address->address_line1 ?? '' }}
-                        @if(!empty($order->shipping_address->address_line2)) {{ $order->shipping_address->address_line2 }} @endif
-                    </p>
-                    <p>{{ $order->city ?? ($order->shipping_address->city ?? '') }},
-                       {{ $order->state ?? ($order->shipping_address->state ?? '') }},
-                       {{ $order->pincode ?? ($order->shipping_address->postal_code ?? '') }}</p>
-                    <p>{{ $order->country ?? ($order->shipping_address->country ?? 'India') }}</p>
-                </div>
+ {{-- ✅ Shipping Address --}}
+<div class="bg-white shadow-md rounded-xl p-6 mb-8">
+    <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">Shipping Address</h2>
+
+    @php
+        // Prefer shipping_address object if available
+        $shipping = $order->shipping_address ?? null;
+    @endphp
+
+    @if($shipping || $order->name || $order->address)
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700">
+            
+            {{-- Left Side: Contact Info --}}
+            <div class="space-y-2">
+                <p><span class="font-semibold">Full Name:</span> {{ $order->name ?? ($shipping->title ?? 'N/A') }}</p>
+                <p><span class="font-semibold">Phone:</span> {{ $order->phone ?? ($shipping->phone ?? 'N/A') }}</p>
+                <p><span class="font-semibold">Email:</span> {{ $order->email ?? ($order->user->email ?? 'N/A') }}</p>
             </div>
-        @else
-            <p class="text-gray-500">No shipping address available for this order.</p>
-        @endif
-    </div>
+
+            {{-- Right Side: Address --}}
+            <div class="space-y-2">
+                <p><span class="font-semibold">Address:</span></p>
+                <p>
+                    {{ $order->address ?? ($shipping->address_line1 ?? 'N/A') }}
+                    @if(!empty($shipping->address_line2))<br>{{ $shipping->address_line2 }}@endif
+                </p>
+                <p>
+                    {{ $shipping->city ?? ($address->city ?? 'N/A') }}, 
+                    {{ $shipping->state ?? ($address->state ?? 'N/A') }}<br>
+                    {{ $shipping->postal_code ?? ($address->postal_code ?? '') }}<br>
+                    {{ $shipping->country ?? ($address->country ?? 'India') }}
+                </p>
+            </div>
+
+        </div>
+    @else
+        <p class="text-gray-500 italic">No shipping address available for this order.</p>
+    @endif
+</div>
 
     {{-- ✅ Ordered Products --}}
 <div class="bg-white shadow-md rounded-xl p-6 mb-8">

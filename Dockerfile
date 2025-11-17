@@ -9,15 +9,16 @@ WORKDIR /var/www/html
 # ----------------------------
 # Install system dependencies
 # ----------------------------
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    unzip \
-    libzip-dev \
-    libonig-dev \
-    libxml2-dev \
-    curl \
-    supervisor \
-    nano \
+RUN apt-get update --fix-missing -o Acquire::Retries=5 -o Acquire::http::Timeout="30" \
+    && apt-get install -y --no-install-recommends \
+        git \
+        unzip \
+        libzip-dev \
+        libonig-dev \
+        libxml2-dev \
+        curl \
+        supervisor \
+        nano \
     && docker-php-ext-install pdo_mysql mbstring zip exif pcntl bcmath \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*

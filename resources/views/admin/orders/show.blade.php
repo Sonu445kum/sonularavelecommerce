@@ -30,7 +30,7 @@
     </div>
 
 
-    <!-- @php
+    @php
     $shipping = $order->address ?? null;
 @endphp
   <div class="card-body">
@@ -50,8 +50,8 @@
         </p>
     @else
         <p class="text-muted">No shipping address provided.</p>
-    @endif -->
-<!-- </div> -->
+    @endif
+</div>
 
 
 </div>

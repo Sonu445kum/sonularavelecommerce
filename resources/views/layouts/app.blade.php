@@ -66,7 +66,6 @@
             animation: slide-in 0.4s ease-out;
         }
     </style>
-    <title>@yield('title', config('app.name', 'MyShop E-Commerce'))</title>
 
 <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
