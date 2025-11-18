@@ -36,7 +36,7 @@ class AdminController extends Controller
         $totalRevenue = Order::whereIn('status', ['completed', 'delivered'])->sum('total');
 
         // ⏳ Pending payments
-        $pendingPayments = Payment::where('status', 'pending')->count();
+        $successfulPayments = Payment::where('status', 'success')->count();
 
         // 💖 Total wishlists
         $wishlistCount = Wishlist::count();
@@ -66,7 +66,7 @@ class AdminController extends Controller
             'totalCategories',
             'totalUsers',
             'totalRevenue',
-            'pendingPayments',
+            'successfulPayments',
             'wishlistCount',
             'recentOrders',
             'recentUsers',

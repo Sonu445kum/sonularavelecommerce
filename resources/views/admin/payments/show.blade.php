@@ -4,79 +4,161 @@
 
 @section('content')
 <div class="container mt-4">
-    <h2 class="mb-4">Payment Details - #{{ $payment->id }}</h2>
 
-    {{-- Payment Information --}}
-    <div class="card mb-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">Payment Details — #{{ $payment->id }}</h2>
+        <a href="{{ route('admin.payments.index') }}" class="btn btn-secondary btn-sm">
+            ← Back to Payments
+        </a>
+    </div>
+
+    {{-- =======================
+        PAYMENT INFO
+    ======================== --}}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Payment Information</h5>
+        </div>
         <div class="card-body">
-            <h5 class="card-title">Payment Information</h5>
-            <p><strong>Payment ID:</strong> #{{ $payment->id }}</p>
-            <p><strong>Order ID:</strong> 
-                <a href="{{ route('admin.orders.show', $payment->order_id) }}" class="text-primary">
-                    #{{ $payment->order_id }}
-                </a>
-            </p>
-            <p><strong>User:</strong> {{ $payment->order && $payment->order->user ? $payment->order->user->name : 'N/A' }}</p>
-            <p><strong>Amount:</strong> <strong class="text-success">₹{{ number_format($payment->amount, 2) }}</strong></p>
-            <p><strong>Payment Method:</strong> {{ ucfirst($payment->method ?? 'N/A') }}</p>
-            <p><strong>Status:</strong>
-                <span class="badge 
-                    @if($payment->status === 'success') bg-success
-                    @elseif($payment->status === 'pending') bg-warning
-                    @elseif($payment->status === 'failed') bg-danger
-                    @elseif($payment->status === 'refunded') bg-info
-                    @else bg-secondary
-                    @endif">
-                    {{ ucfirst($payment->status) }}
-                </span>
-            </p>
-            <p><strong>Transaction ID:</strong> {{ $payment->transaction_id ?? 'N/A' }}</p>
-            <p><strong>Payment Date:</strong> {{ $payment->created_at->format('d M Y, h:i A') }}</p>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <strong>Payment ID:</strong><br>
+                    #{{ $payment->id }}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Order ID:</strong><br>
+                    @if($payment->order)
+                        <a href="{{ route('admin.orders.show', $payment->order->id) }}"
+                           class="text-decoration-none text-primary fw-semibold">
+                           #{{ $payment->order->id }}
+                        </a>
+                    @else
+                        <span class="text-muted">N/A</span>
+                    @endif
+                </div>
+
+                <div class="col-md-4">
+                    <strong>User:</strong><br>
+                    @if($payment->order && $payment->order->user)
+                        {{ $payment->order->user->name }}  
+                        <br><small class="text-muted">{{ $payment->order->user->email }}</small>
+                    @else
+                        <span class="text-muted">Unknown User</span>
+                    @endif
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <strong>Amount:</strong><br>
+                    <span class="text-success fw-bold">
+                        ₹{{ number_format($payment->amount, 2) }}
+                    </span>
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Method:</strong><br>
+                    {{ ucfirst($payment->method ?? 'N/A') }}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Status:</strong><br>
+                    @php
+                        $statusColors = [
+                            'success' => 'success',
+                            'pending' => 'warning',
+                            'failed'  => 'danger',
+                            'refunded'=> 'info'
+                        ];
+                        $color = $statusColors[$payment->status] ?? 'secondary';
+                    @endphp
+                    <span class="badge bg-{{ $color }} px-3 py-2">{{ ucfirst($payment->status) }}</span>
+                </div>
+            </div>
+
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <strong>Transaction ID:</strong><br>
+                    <span class="text-break">{{ $payment->transaction_id ?? 'N/A' }}</span>
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Payment Date:</strong><br>
+                    {{ $payment->created_at->format('d M Y, h:i A') }}
+                </div>
+            </div>
+
         </div>
     </div>
 
-    {{-- Order Information --}}
+    {{-- =======================
+        ORDER INFO
+    ======================== --}}
     @if($payment->order)
-    <div class="card mb-4 shadow-sm">
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Order Information</h5>
+        </div>
         <div class="card-body">
-            <h5 class="card-title">Related Order Information</h5>
-            <p><strong>Order Total:</strong> ₹{{ number_format($payment->order->total, 2) }}</p>
-            <p><strong>Order Status:</strong> 
-                <span class="badge 
-                    @if(in_array(strtolower($payment->order->status), ['delivered', 'completed'])) bg-success
-                    @elseif(strtolower($payment->order->status) == 'cancelled') bg-danger
-                    @else bg-warning
-                    @endif">
-                    {{ ucfirst($payment->order->status) }}
-                </span>
-            </p>
-            <p><strong>Order Date:</strong> {{ $payment->order->created_at->format('d M Y, h:i A') }}</p>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <strong>Order Total:</strong><br>
+                    ₹{{ number_format($payment->order->total, 2) }}
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Status:</strong><br>
+                    @php
+                        $orderStatus = strtolower($payment->order->status);
+                        $badge = ($orderStatus == 'cancelled') ? 'danger' :
+                                 (in_array($orderStatus, ['delivered', 'completed']) ? 'success' : 'warning');
+                    @endphp
+                    <span class="badge bg-{{ $badge }} px-3 py-2">
+                        {{ ucfirst($payment->order->status) }}
+                    </span>
+                </div>
+
+                <div class="col-md-4">
+                    <strong>Order Date:</strong><br>
+                    {{ $payment->order->created_at->format('d M Y, h:i A') }}
+                </div>
+            </div>
+
         </div>
     </div>
 
-    {{-- Order Items --}}
-    @if($payment->order->orderItems && $payment->order->orderItems->count() > 0)
-    <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Order Items</h5>
-            <table class="table table-bordered">
-                <thead>
+    {{-- =======================
+        ORDER ITEMS
+    ======================== --}}
+    @if($payment->order->orderItems->count() > 0)
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Order Items</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-light">
                     <tr>
                         <th>#</th>
                         <th>Product</th>
-                        <th>Price</th>
-                        <th>Quantity</th>
-                        <th>Subtotal</th>
+                        <th>Price (₹)</th>
+                        <th>Qty</th>
+                        <th>Subtotal (₹)</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($payment->order->orderItems as $index => $item)
+                    @foreach($payment->order->orderItems as $i => $item)
                     <tr>
-                        <td>{{ $index + 1 }}</td>
-                        <td>{{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}</td>
-                        <td>₹{{ number_format($item->price, 2) }}</td>
+                        <td>{{ $i + 1 }}</td>
+                        <td>
+                            {{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}
+                        </td>
+                        <td>{{ number_format($item->price, 2) }}</td>
                         <td>{{ $item->quantity }}</td>
-                        <td>₹{{ number_format($item->price * $item->quantity, 2) }}</td>
+                        <td>{{ number_format($item->price * $item->quantity, 2) }}</td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -86,29 +168,39 @@
     @endif
     @endif
 
-    {{-- Update Status Section --}}
-    <div class="card shadow-sm">
+    {{-- =======================
+        UPDATE STATUS FORM
+    ======================== --}}
+    <div class="card shadow-sm mb-5">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Update Payment Status</h5>
+        </div>
         <div class="card-body">
-            <h5 class="card-title">Update Payment Status</h5>
+
             <form action="{{ route('admin.payments.updateStatus', $payment->id) }}" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="row align-items-center">
+
+                <div class="row g-3">
                     <div class="col-md-4">
+                        <label class="form-label fw-bold">Select Status</label>
                         <select name="status" class="form-select" required>
-                            <option value="pending" {{ $payment->status === 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="success" {{ $payment->status === 'success' ? 'selected' : '' }}>Success</option>
-                            <option value="failed" {{ $payment->status === 'failed' ? 'selected' : '' }}>Failed</option>
-                            <option value="refunded" {{ $payment->status === 'refunded' ? 'selected' : '' }}>Refunded</option>
+                            <option value="pending"  {{ $payment->status == 'pending' ? 'selected' : '' }}>Pending</option>
+                            <option value="success"  {{ $payment->status == 'success' ? 'selected' : '' }}>Success</option>
+                            <option value="failed"   {{ $payment->status == 'failed' ? 'selected' : '' }}>Failed</option>
+                            <option value="refunded" {{ $payment->status == 'refunded' ? 'selected' : '' }}>Refunded</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <button class="btn btn-primary">Update Status</button>
+
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button class="btn btn-primary w-100">Update Status</button>
                     </div>
                 </div>
+
             </form>
+
         </div>
     </div>
+
 </div>
 @endsection
-

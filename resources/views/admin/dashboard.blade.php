@@ -47,15 +47,19 @@
         <div class="summary-metrics d-flex flex-wrap gap-3 justify-content-center">
 
             @php
-                $cards = [
-                    ['icon'=>'bi-box-seam','title'=>'Total Products','value'=>$totalProducts ?? 0,'bg'=>'linear-gradient(135deg,#6a11cb,#2575fc)'],
-                    ['icon'=>'bi-bag-check','title'=>'Total Orders','value'=>$totalOrders ?? 0,'bg'=>'linear-gradient(135deg,#ff416c,#ff4b2b)'],
-                    ['icon'=>'bi-tags','title'=>'Total Categories','value'=>$totalCategories ?? 0,'bg'=>'linear-gradient(135deg,#00c6ff,#0072ff)'],
-                    ['icon'=>'bi-people','title'=>'Total Users','value'=>$totalUsers ?? 0,'bg'=>'linear-gradient(135deg,#f7971e,#ffd200)'],
-                    ['icon'=>'bi-currency-rupee','title'=>'Total Revenue','value'=>'₹'.number_format($totalRevenue ?? 0,2),'bg'=>'linear-gradient(135deg,#43e97b,#38f9d7)'],
-                    ['icon'=>'bi-wallet2','title'=>'Successful Payments','value'=>$successfulPayments ?? 0,'bg'=>'linear-gradient(135deg,#ffb75e,#ed8f03)'],
-                ];
-            @endphp
+            // ⭐⭐ FIX START ⭐⭐
+            $successfulPayments = $successfulPayments ?? 0;
+            // ⭐⭐ FIX END ⭐⭐
+
+            $cards = [
+                ['icon'=>'bi-box-seam','title'=>'Total Products','value'=>$totalProducts ?? 0,'bg'=>'linear-gradient(135deg,#6a11cb,#2575fc)'],
+                ['icon'=>'bi-bag-check','title'=>'Total Orders','value'=>$totalOrders ?? 0,'bg'=>'linear-gradient(135deg,#ff416c,#ff4b2b)'],
+                ['icon'=>'bi-tags','title'=>'Total Categories','value'=>$totalCategories ?? 0,'bg'=>'linear-gradient(135deg,#00c6ff,#0072ff)'],
+                ['icon'=>'bi-people','title'=>'Total Users','value'=>$totalUsers ?? 0,'bg'=>'linear-gradient(135deg,#f7971e,#ffd200)'],
+                ['icon'=>'bi-currency-rupee','title'=>'Total Revenue','value'=>'₹'.number_format($totalRevenue ?? 0,2),'bg'=>'linear-gradient(135deg,#43e97b,#38f9d7)'],
+                ['icon'=>'bi-wallet2','title'=>'Successful Payments','value'=>$successfulPayments,'bg'=>'linear-gradient(135deg,#ffb75e,#ed8f03)'],
+            ];
+        @endphp
 
             @foreach($cards as $card)
                 <div class="metric-card" style="background: {{ $card['bg'] }};">
