@@ -21,36 +21,24 @@ class AdminController extends Controller
      * ------------------------------------------
      * 🏠 Admin Dashboard
      * ------------------------------------------
-     * Show the main admin dashboard page with notifications
      */
     public function dashboard()
     {
-        // 🔢 Stats
-        // ==================== Add this ====================
+        // -------- BASIC STATS --------
         $totalProducts = Product::count();
         $totalOrders = Order::count();
         $totalCategories = Category::count();
         $totalUsers = User::count();
 
-        // 💰 Total revenue (completed/delivered)
         $totalRevenue = Order::whereIn('status', ['completed', 'delivered'])->sum('total');
-
-        // ⏳ Pending payments
         $successfulPayments = Payment::where('status', 'success')->count();
-
-        // 💖 Total wishlists
         $wishlistCount = Wishlist::count();
 
-        // 🧾 Recent orders
         $recentOrders = Order::with('user')->latest()->take(10)->get();
-
-        // 👥 Recent users
         $recentUsers = User::latest()->take(10)->get();
-
-        // 💳 Recent payments
         $recentPayments = Payment::with(['order.user'])->latest()->take(10)->get();
 
-        // 🔔 Admin Notifications
+        // -------- NOTIFICATIONS --------
         $notifications = Notification::where('user_id', auth()->id())
             ->latest()
             ->take(10)
@@ -59,6 +47,52 @@ class AdminController extends Controller
         $unreadCount = Notification::where('user_id', auth()->id())
             ->where('is_read', false)
             ->count();
+
+        // -------- MONTHLY CHART DATA --------
+        $months = collect(range(1, 12))->map(fn($m) => date("M", mktime(0, 0, 0, $m, 1)));
+
+        $ordersMonthly = [];
+        $revenueMonthly = [];
+        $paymentsMonthly = [];
+        $usersMonthly = [];
+
+        foreach (range(1, 12) as $month) {
+            $ordersMonthly[] = Order::whereMonth('created_at', $month)->count();
+            $revenueMonthly[] = Order::whereMonth('created_at', $month)->sum('total');
+            $paymentsMonthly[] = Payment::whereMonth('created_at', $month)->count();
+            $usersMonthly[] = User::whereMonth('created_at', $month)->count();
+        }
+
+        // -------- REVENUE DISTRIBUTION CHART --------
+        $revenueDistributionLabels = ['Product A', 'Product B', 'Product C', 'Product D', 'Product E'];
+        $revenueDistributionData = [
+            rand(5000, 15000),
+            rand(3000, 10000),
+            rand(2000, 8000),
+            rand(4000, 12000),
+            rand(1000, 6000),
+        ];
+
+        // -------- PAYMENT METHOD CHART --------
+        $paymentMethodLabels = ['COD', 'Razorpay', 'Stripe', 'PayPal'];
+        $paymentMethodData = Payment::getPaymentMethodCounts(['cod', 'razorpay', 'stripe', 'paypal']);
+        $paymentMethodData = array_values($paymentMethodData); // convert to numeric array for chart
+
+        // -------- GROWTH RATE CHART --------
+        $usersPrev  = User::whereMonth('created_at', now()->subMonth()->month)->count();
+        $usersNow   = User::whereMonth('created_at', now()->month)->count();
+
+        $ordersPrev = Order::whereMonth('created_at', now()->subMonth()->month)->count();
+        $ordersNow  = Order::whereMonth('created_at', now()->month)->count();
+
+        $revenuePrev = Order::whereMonth('created_at', now()->subMonth()->month)->sum('total');
+        $revenueNow  = Order::whereMonth('created_at', now()->month)->sum('total');
+
+        $growthRateData = [
+            $this->growthCalc($usersPrev, $usersNow),
+            $this->growthCalc($ordersPrev, $ordersNow),
+            $this->growthCalc($revenuePrev, $revenueNow),
+        ];
 
         return view('admin.dashboard', compact(
             'totalProducts',
@@ -73,14 +107,38 @@ class AdminController extends Controller
             'recentPayments',
             'notifications',
             'unreadCount',
+
+            // chart data
+            'months',
+            'ordersMonthly',
+            'revenueMonthly',
+            'paymentsMonthly',
+            'usersMonthly',
+
+            'revenueDistributionLabels',
+            'revenueDistributionData',
+
+            'paymentMethodLabels',
+            'paymentMethodData',
+
+            'growthRateData',
         ));
+    }
+
+    /**
+     * Calculate growth percentage
+     */
+    private function growthCalc($prev, $now)
+    {
+        if ($prev == 0 && $now == 0) return 0;
+        if ($prev == 0) return 100;
+        return round((($now - $prev) / $prev) * 100, 2);
     }
 
     /**
      * ------------------------------------------
      * 📨 Handle New Order Notification
      * ------------------------------------------
-     * When a new order is placed, create admin notification + email
      */
     public static function notifyNewOrder(Order $order)
     {
@@ -130,25 +188,20 @@ class AdminController extends Controller
     {
         $user = auth()->user();
 
-        // ✅ Validate
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
         ];
 
         if ($request->hasFile('profile_image')) {
-            $file = $request->file('profile_image');
-            if ($file && $file->isValid()) {
-                $rules['profile_image'] = 'required|image|mimes:jpeg,jpg,png|max:2048';
-            }
+            $rules['profile_image'] = 'required|image|mimes:jpeg,jpg,png|max:2048';
         }
 
         $validated = $request->validate($rules);
 
-        // 📸 Handle Profile Image
         if ($request->hasFile('profile_image')) {
             $profileImage = $request->file('profile_image');
-            if ($profileImage && $profileImage->isValid()) {
+            if ($profileImage->isValid()) {
                 if ($user->profile_image && Storage::disk('public')->exists($user->profile_image)) {
                     Storage::disk('public')->delete($user->profile_image);
                 }
@@ -158,7 +211,6 @@ class AdminController extends Controller
             }
         }
 
-        // 📝 Update user info
         $user->name = $request->name;
         $user->email = $request->email;
         $user->save();

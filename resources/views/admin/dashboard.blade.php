@@ -47,19 +47,23 @@
         <div class="summary-metrics d-flex flex-wrap gap-3 justify-content-center">
 
             @php
-            // ⭐⭐ FIX START ⭐⭐
-            $successfulPayments = $successfulPayments ?? 0;
-            // ⭐⭐ FIX END ⭐⭐
+                // ensure variable exists (safe fallback)
+                $successfulPayments = $successfulPayments ?? 0;
+                $totalProducts = $totalProducts ?? 0;
+                $totalOrders = $totalOrders ?? 0;
+                $totalCategories = $totalCategories ?? 0;
+                $totalUsers = $totalUsers ?? 0;
+                $totalRevenue = $totalRevenue ?? 0.0;
 
-            $cards = [
-                ['icon'=>'bi-box-seam','title'=>'Total Products','value'=>$totalProducts ?? 0,'bg'=>'linear-gradient(135deg,#6a11cb,#2575fc)'],
-                ['icon'=>'bi-bag-check','title'=>'Total Orders','value'=>$totalOrders ?? 0,'bg'=>'linear-gradient(135deg,#ff416c,#ff4b2b)'],
-                ['icon'=>'bi-tags','title'=>'Total Categories','value'=>$totalCategories ?? 0,'bg'=>'linear-gradient(135deg,#00c6ff,#0072ff)'],
-                ['icon'=>'bi-people','title'=>'Total Users','value'=>$totalUsers ?? 0,'bg'=>'linear-gradient(135deg,#f7971e,#ffd200)'],
-                ['icon'=>'bi-currency-rupee','title'=>'Total Revenue','value'=>'₹'.number_format($totalRevenue ?? 0,2),'bg'=>'linear-gradient(135deg,#43e97b,#38f9d7)'],
-                ['icon'=>'bi-wallet2','title'=>'Successful Payments','value'=>$successfulPayments,'bg'=>'linear-gradient(135deg,#ffb75e,#ed8f03)'],
-            ];
-        @endphp
+                $cards = [
+                    ['icon'=>'bi-box-seam','title'=>'Total Products','value'=>$totalProducts,'bg'=>'linear-gradient(135deg,#6a11cb,#2575fc)'],
+                    ['icon'=>'bi-bag-check','title'=>'Total Orders','value'=>$totalOrders,'bg'=>'linear-gradient(135deg,#ff416c,#ff4b2b)'],
+                    ['icon'=>'bi-tags','title'=>'Total Categories','value'=>$totalCategories,'bg'=>'linear-gradient(135deg,#00c6ff,#0072ff)'],
+                    ['icon'=>'bi-people','title'=>'Total Users','value'=>$totalUsers,'bg'=>'linear-gradient(135deg,#f7971e,#ffd200)'],
+                    ['icon'=>'bi-currency-rupee','title'=>'Total Revenue','value'=>'₹'.number_format($totalRevenue,2),'bg'=>'linear-gradient(135deg,#43e97b,#38f9d7)'],
+                    ['icon'=>'bi-wallet2','title'=>'Successful Payments','value'=>$successfulPayments,'bg'=>'linear-gradient(135deg,#ffb75e,#ed8f03)'],
+                ];
+            @endphp
 
             @foreach($cards as $card)
                 <div class="metric-card" style="background: {{ $card['bg'] }};">
@@ -92,7 +96,7 @@
 
         <div class="col-md-6 mt-4">
             <div class="card shadow-sm rounded-4 p-4">
-                <h5 class="fw-bold mb-3">Growth Rate</h5>
+                <h5 class="fw-bold mb-3">Growth / Payment Methods</h5>
                 <canvas id="growthPieChart" height="200"></canvas>
             </div>
         </div>
@@ -217,10 +221,15 @@
 
 </div>
 
-{{-- ==================== Revenue Pie Chart ==================== --}}
+{{-- ==================== Revenue Pie Chart fallbacks ==================== --}}
 @php
-    $revenueLabels = $revenueDistributionLabels ?? ['Product A','Product B','Product C','Product D','Product E'];
-    $revenueData   = $revenueDistributionData ?? [120,90,70,50,30];
+    // backward compatible variable names used earlier in your project
+    $revenueLabels = $revenueDistributionLabels ?? ($revenueLabels ?? ['Product A','Product B','Product C','Product D','Product E']);
+    $revenueData   = $revenueDistributionData ?? ($revenueData ?? [120,90,70,50,30]);
+
+    // payment method fallback (if controller didn't pass method distribution)
+    $paymentMethodLabels = $paymentMethodLabels ?? ($paymentMethodLabels ?? []);
+    $paymentMethodData = $paymentMethodData ?? ($paymentMethodData ?? []);
 @endphp
 
 {{-- ============================ STYLES ============================= --}}
@@ -290,95 +299,211 @@
 }
 </style>
 
-{{-- ============================ CHARTS ============================= --}}
+{{-- ============================ CHARTS (single robust script) ============================= --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+    // ---------------------------
     // Animated Counters
+    // ---------------------------
     document.querySelectorAll('.counter').forEach(el=>{
-        let value = parseFloat(el.textContent.replace(/[^0-9.]/g,''));
-        let start = 0; 
-        let duration = 1500;
-        let increment = value / (duration / 16);
+        let raw = el.textContent || '';
+        let value = parseFloat(raw.toString().replace(/[^0-9.]/g,'')) || 0;
+        let start = 0;
+        let duration = 800;
+        let steps = Math.max(1, Math.floor(duration / 16));
+        let increment = value / steps;
         function updateCounter(){
             start += increment;
-            if(start >= value) el.textContent = el.textContent.includes('₹') ? '₹'+value.toFixed(2) : Math.floor(value);
-            else { 
-                el.textContent = el.textContent.includes('₹') ? '₹'+Math.floor(start) : Math.floor(start); 
+            if (start >= value) {
+                if (raw.includes('₹')) el.textContent = '₹' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+                else el.textContent = Math.floor(value).toLocaleString();
+            } else {
+                if (raw.includes('₹')) el.textContent = '₹' + Math.floor(start).toLocaleString();
+                else el.textContent = Math.floor(start).toLocaleString();
                 requestAnimationFrame(updateCounter);
             }
         }
         updateCounter();
     });
 
-    // Charts...
-    const dashboardChart = new Chart(document.getElementById('dashboardChart').getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: @json($dashboardLabels ?? []),
-            datasets: [
-                { label: 'Orders', data: @json($ordersChartData ?? []), borderColor: '#007bff', backgroundColor:'rgba(0,123,255,0.2)', fill:true, tension:0.3 },
-                { label: 'Revenue', data: @json($revenueChartData ?? []), borderColor: '#17a2b8', backgroundColor:'rgba(23,162,184,0.2)', fill:true, tension:0.3 },
-                { label: 'Products', data: @json($productsChartData ?? []), borderColor: '#28a745', backgroundColor:'rgba(40,167,69,0.2)', fill:true, tension:0.3 },
-                { label: 'Payments', data: @json($paymentsChartData ?? []), borderColor: '#ffc107', backgroundColor:'rgba(255,193,7,0.2)', fill:true, tension:0.3 }
-            ]
-        },
-        options:{ responsive:true, interaction:{mode:'index',intersect:false}, stacked:false, plugins:{ legend:{ position:'top' } }, scales:{ y:{ beginAtZero:true }, x:{} } }
-    });
-    // Revenue Pie Chart
-        const revenueCtx = document.getElementById('revenuePieChart').getContext('2d');
+    // ---------------------------
+    // Prepare data (support old & new variable names)
+    // ---------------------------
+    const months = @json($months ?? null);
+    const dashboardLabels = @json($dashboardLabels ?? null);
+    const labels = (Array.isArray(months) && months.length) ? months : (Array.isArray(dashboardLabels) ? dashboardLabels : []);
 
-        // Agar chart already exist karta hai toh destroy karo
-        if (window.revenueChart) window.revenueChart.destroy();
+    const ordersMonthly = @json($ordersMonthly ?? null);
+    const ordersChartData = @json($ordersChartData ?? null);
+    const ordersData = (Array.isArray(ordersMonthly) && ordersMonthly.length) ? ordersMonthly : (Array.isArray(ordersChartData) ? ordersChartData : []);
 
-        const revenueColors = ['#007bff','#28a745','#ffc107','#dc3545','#17a2b8'];
+    const revenueMonthly = @json($revenueMonthly ?? null);
+    const revenueChartData = @json($revenueChartData ?? null);
+    const revenueData = (Array.isArray(revenueMonthly) && revenueMonthly.length) ? revenueMonthly : (Array.isArray(revenueChartData) ? revenueChartData : []);
 
-        window.revenueChart = new Chart(revenueCtx, {
+    const usersMonthly = @json($usersMonthly ?? null);
+    const productsChartData = @json($productsChartData ?? null);
+    const usersData = (Array.isArray(usersMonthly) && usersMonthly.length) ? usersMonthly : (Array.isArray(productsChartData) ? productsChartData : []);
+
+    const paymentsMonthly = @json($paymentsMonthly ?? null);
+    const paymentsChartData = @json($paymentsChartData ?? null);
+    const paymentsData = (Array.isArray(paymentsMonthly) && paymentsMonthly.length) ? paymentsMonthly : (Array.isArray(paymentsChartData) ? paymentsChartData : []);
+
+    const revenueDistributionLabels = @json($revenueDistributionLabels ?? null);
+    const revenueLabelsOld = @json($revenueLabels ?? null);
+    const revLabels = (Array.isArray(revenueDistributionLabels) && revenueDistributionLabels.length) ? revenueDistributionLabels : (Array.isArray(revenueLabelsOld) ? revenueLabelsOld : @json($revenueLabels ?? ['Product A','Product B']));
+
+    const revenueDistributionData = @json($revenueDistributionData ?? null);
+    const revenueDataPieOld = @json($revenueData ?? null);
+    const revData = (Array.isArray(revenueDistributionData) && revenueDistributionData.length) ? revenueDistributionData : (Array.isArray(revenueDataPieOld) ? revenueDataPieOld : @json($revenueData ?? [100,50]));
+
+    const paymentMethodLabels = @json($paymentMethodLabels ?? null);
+    const paymentMethodData = @json($paymentMethodData ?? null);
+    const growthRateData = @json($growthRateData ?? null);
+
+    let pmLabels = [];
+    let pmData = [];
+
+    if (Array.isArray(paymentMethodLabels) && paymentMethodLabels.length && Array.isArray(paymentMethodData) && paymentMethodData.length) {
+        pmLabels = paymentMethodLabels;
+        pmData = paymentMethodData;
+    } else if (Array.isArray(growthRateData) && growthRateData.length >= 3) {
+        pmLabels = ['New Users','New Orders','Revenue Growth'];
+        pmData = growthRateData;
+    } else {
+        // fallback safe defaults
+        pmLabels = @json($paymentMethodLabels ?? ['Stripe','COD','Razorpay']);
+        pmData = @json($paymentMethodData ?? [0,0,0]);
+    }
+
+    // ---------------------------
+    // Destroy existing charts if present
+    // ---------------------------
+    try {
+        if (window.overallChart) { window.overallChart.destroy(); window.overallChart = null; }
+        if (window.revenueChart) { window.revenueChart.destroy(); window.revenueChart = null; }
+        if (window.methodChart) { window.methodChart.destroy(); window.methodChart = null; }
+    } catch(e) {
+        console.warn('Chart destroy warning:', e);
+    }
+
+    // ---------------------------
+    // 1) Overall multi-line chart
+    // ---------------------------
+    const overallCtx = document.getElementById('dashboardChart');
+    if (overallCtx) {
+        window.overallChart = new Chart(overallCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Orders',      data: ordersData,  borderColor: '#007bff', backgroundColor:'rgba(0,123,255,0.08)', fill:true, tension:0.3 },
+                    { label: 'Revenue (₹)', data: revenueData, borderColor: '#28a745', backgroundColor:'rgba(40,167,69,0.08)', fill:true, tension:0.3 },
+                    { label: 'Payments',    data: paymentsData, borderColor:'#ffc107', backgroundColor:'rgba(255,193,7,0.08)', fill:true, tension:0.3 },
+                    { label: 'Users',       data: usersData, borderColor:'#17a2b8', backgroundColor:'rgba(23,162,184,0.08)', fill:true, tension:0.3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                stacked: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                let lab = ctx.dataset.label || '';
+                                let val = ctx.parsed && typeof ctx.parsed.y !== 'undefined' ? ctx.parsed.y : ctx.raw;
+                                if (lab.includes('Revenue')) return lab + ': ₹' + Number(val).toLocaleString();
+                                return lab + ': ' + Number(val).toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true },
+                    x: {}
+                }
+            }
+        });
+    }
+
+    // ---------------------------
+    // 2) Revenue distribution pie
+    // ---------------------------
+    const revCtx = document.getElementById('revenuePieChart');
+    if (revCtx) {
+        window.revenueChart = new Chart(revCtx, {
             type: 'pie',
             data: {
-                labels: @json($revenueLabels),
+                labels: revLabels,
                 datasets: [{
-                    data: @json($revenueData),
-                    backgroundColor: revenueColors,
-                    borderColor: '#fff',
-                    borderWidth: 2,
-                    hoverOffset: 20
+                    data: revData,
+                    backgroundColor: (function(){
+                        const palette = ['#007bff','#28a745','#ffc107','#dc3545','#17a2b8','#6f42c1','#fd7e14','#20c997','#d63384','#0d6efd'];
+                        return palette.slice(0, Math.max(1, revLabels.length));
+                    })()
                 }]
             },
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 15,
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                        }
-                    },
+                    legend: { position: 'bottom' },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                let label = context.label || '';
-                                let value = context.raw || 0;
-                                let total = context.dataset.data.reduce((a,b) => a + b, 0);
-                                let percentage = ((value / total) * 100).toFixed(1);
-                                return `${label}: ${value} (${percentage}%)`;
+                                const label = context.label || '';
+                                const val = context.raw || 0;
+                                const total = context.dataset.data.reduce((a,b)=>a+(parseFloat(b)||0),0);
+                                const pct = total ? ((val/total)*100).toFixed(1) : 0;
+                                return `${label}: ₹${Number(val).toLocaleString()} (${pct}%)`;
                             }
                         }
                     }
                 }
             }
         });
-    new Chart(document.getElementById('growthPieChart').getContext('2d'), {
-        type:'doughnut',
-        data:{ labels:['New Users','New Orders','Revenue Growth'], datasets:[{ data:@json($growthRateData ?? [30,20,50]), backgroundColor:['#28a745','#007bff','#ffc107'] }] },
-        options:{ responsive:true, cutout:'60%', plugins:{ legend:{ position:'bottom' } } }
-    });
+    }
+
+    // ---------------------------
+    // 3) Payment method / growth doughnut
+    // ---------------------------
+    const methodCtx = document.getElementById('growthPieChart');
+    if (methodCtx) {
+        window.methodChart = new Chart(methodCtx, {
+            type: 'doughnut',
+            data: {
+                labels: pmLabels,
+                datasets: [{
+                    data: pmData,
+                    backgroundColor: ['#28a745','#007bff','#ffc107','#6f42c1','#6f42c1']
+                }]
+            },
+            options: {
+                responsive: true,
+                cutout: '60%',
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx){
+                                const label = ctx.label || '';
+                                const val = ctx.raw || 0;
+                                if (typeof val === 'number' && val > 100) {
+                                    return `${label}: ₹${Number(val).toLocaleString()}`;
+                                }
+                                return `${label}: ${val}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // console.debug({ labels, ordersData, revenueData, paymentsData, usersData, revLabels, revData, pmLabels, pmData });
 });
 </script>
 

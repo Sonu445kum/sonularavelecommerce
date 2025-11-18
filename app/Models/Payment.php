@@ -14,13 +14,13 @@ class Payment extends Model
      * Table Configuration
      * ==============================
      */
-    protected $table = 'payments'; // force correct table
+    protected $table = 'payments';
 
     protected $fillable = [
         'order_id',
         'transaction_id',
         'status',
-        'method',
+        'method',   // stores payment method like cod, razorpay, stripe, paypal
         'amount',
         'meta',
     ];
@@ -49,7 +49,7 @@ class Payment extends Model
 
     /**
      * ==============================
-     * Accessors & Helpers
+     * Status Helpers
      * ==============================
      */
 
@@ -113,5 +113,21 @@ class Payment extends Model
     public function getTransactionReference(): string
     {
         return $this->transaction_id ?? 'N/A';
+    }
+
+    /**
+     * ==============================
+     * Dashboard Helpers
+     * ==============================
+     */
+
+    // Get counts for all payment methods
+    public static function getPaymentMethodCounts(array $methods = ['cod', 'razorpay', 'stripe', 'paypal']): array
+    {
+        $counts = [];
+        foreach ($methods as $method) {
+            $counts[$method] = self::method($method)->count();
+        }
+        return $counts;
     }
 }

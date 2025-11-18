@@ -10,6 +10,7 @@ use App\Models\Category;
 use App\Models\Payment;
 use App\Models\Notification;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class AdminDashboardController extends Controller
 {
@@ -22,8 +23,8 @@ class AdminDashboardController extends Controller
         $totalOrders = Order::count();
         $totalCategories = Category::count();
         $totalUsers = User::count();
-        $totalRevenue = Payment::where('status', 'success')->sum('amount');
-        $successfulPayments = Payment::where('status', 'success')->count();
+        $totalRevenue = Payment::whereRaw('LOWER(status) = ?', ['success'])->sum('amount');
+        $successfulPayments = Payment::whereRaw('LOWER(status) = ?', ['success'])->count();
 
         // =========================
         // Recent Records (5 latest)
@@ -38,83 +39,106 @@ class AdminDashboardController extends Controller
             : collect();
 
         // =========================
-        // Chart Data
+        // Chart Data - monthly (last 6 months)
         // =========================
+        $months = [];
+        $ordersMonthly = [];
+        $revenueMonthly = [];
+        $paymentsMonthly = [];
+        $usersMonthly = [];
 
-        // Orders last 7 days
-        $ordersLast7Days = Order::selectRaw('DATE(created_at) as date, COUNT(*) as count')
-            ->where('created_at', '>=', Carbon::now()->subDays(6))
-            ->groupBy('date')
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date');
-
-        $ordersChartLabels = [];
-        $ordersChartData = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now()->subDays($i)->format('d M');
-            $ordersChartLabels[] = $date;
-            $ordersChartData[] = $ordersLast7Days->has(Carbon::now()->subDays($i)->toDateString())
-                ? $ordersLast7Days[Carbon::now()->subDays($i)->toDateString()]->count
-                : 0;
-        }
-
-        // Revenue last 6 months
-        $revenueChartLabels = [];
-        $revenueChartData = [];
         for ($i = 5; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-            $revenueChartLabels[] = $monthStart->format('M Y');
-            $revenueChartData[] = Payment::where('status', 'success')
-                ->whereBetween('created_at', [$monthStart, $monthEnd])
+            $start = Carbon::now()->subMonths($i)->startOfMonth();
+            $end = Carbon::now()->subMonths($i)->endOfMonth();
+
+            $months[] = $start->format('M Y');
+
+            // Orders count in month
+            $ordersMonthly[] = Order::whereBetween('created_at', [$start, $end])->count();
+
+            // Users registered in month
+            $usersMonthly[] = User::whereBetween('created_at', [$start, $end])->count();
+
+            // Revenue (successful payments) in month
+            $revenueMonthly[] = Payment::whereRaw('LOWER(status) = ?', ['success'])
+                ->whereBetween('created_at', [$start, $end])
                 ->sum('amount');
+
+            // Payments (count) in month (all statuses)
+            $paymentsMonthly[] = Payment::whereBetween('created_at', [$start, $end])->count();
         }
 
-        // Users growth chart (last 6 months)
-        $usersChartLabels = $revenueChartLabels;
-        $usersChartData = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-            $usersChartData[] = User::whereBetween('created_at', [$monthStart, $monthEnd])->count();
-        }
+        // =========================
+        // Revenue distribution (top products by revenue from order_items)
+        // uses order_items.product_name and total_price
+        // =========================
+        $productRevenueRows = DB::table('order_items')
+            ->select('product_name', DB::raw('SUM(total_price) as revenue'))
+            ->groupBy('product_name')
+            ->orderByDesc('revenue')
+            ->limit(10)
+            ->get();
 
-        // Revenue Distribution per Product
-        $products = Product::with('orders')->get();
-        $revenueDistributionLabels = [];
-        $revenueDistributionData = [];
-        foreach ($products as $product) {
-            $revenueDistributionLabels[] = $product->name;
-            $revenueDistributionData[] = $product->orders->sum('total');
-        }
+        $revenueDistributionLabels = $productRevenueRows->pluck('product_name')->toArray();
+        $revenueDistributionData = $productRevenueRows->pluck('revenue')->map(function($v){ return (float) $v; })->toArray();
 
-        // Dashboard line chart
-        $productsChartData = [];
-        $paymentsChartData = [];
-        $dashboardLabels = $revenueChartLabels;
-        for ($i = 5; $i >= 0; $i--) {
-            $monthStart = Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = Carbon::now()->subMonths($i)->endOfMonth();
-            $productsChartData[] = Order::whereBetween('created_at', [$monthStart, $monthEnd])->sum('quantity');
-            $paymentsChartData[] = Payment::whereBetween('created_at', [$monthStart, $monthEnd])->count();
-        }
+        // =========================
+        // Payment method distribution (successful payments)
+        // =========================
+        $methodRows = DB::table('payments')
+            ->select('method', DB::raw('SUM(amount) as revenue'))
+            ->whereRaw('LOWER(status) = ?', ['success'])
+            ->groupBy('method')
+            ->orderByDesc('revenue')
+            ->get();
 
-        // Growth Rate (Last month)
+        $paymentMethodLabels = $methodRows->pluck('method')->toArray();
+        $paymentMethodData = $methodRows->pluck('revenue')->map(function($v){ return (float) $v; })->toArray();
+
+        // =========================
+        // Simple growth metrics (compare last month vs previous month)
+        // =========================
+        $lastMonthStart = Carbon::now()->subMonth()->startOfMonth();
+        $lastMonthEnd = Carbon::now()->subMonth()->endOfMonth();
+        $prevMonthStart = Carbon::now()->subMonths(2)->startOfMonth();
+        $prevMonthEnd = Carbon::now()->subMonths(2)->endOfMonth();
+
+        $lastMonthRevenue = Payment::whereRaw('LOWER(status) = ?', ['success'])
+            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
+            ->sum('amount');
+
+        $prevMonthRevenue = Payment::whereRaw('LOWER(status) = ?', ['success'])
+            ->whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])
+            ->sum('amount');
+
+        $lastMonthOrders = Order::whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])->count();
+        $prevMonthOrders = Order::whereBetween('created_at', [$prevMonthStart, $prevMonthEnd])->count();
+
+        $growthRateRevenue = $prevMonthRevenue > 0 ? round((($lastMonthRevenue - $prevMonthRevenue) / $prevMonthRevenue) * 100, 1) : null;
+        $growthRateOrders = $prevMonthOrders > 0 ? round((($lastMonthOrders - $prevMonthOrders) / $prevMonthOrders) * 100, 1) : null;
+
         $growthRateData = [
-            User::where('created_at', '>=', Carbon::now()->subMonth())->count(),
-            Order::where('created_at', '>=', Carbon::now()->subMonth())->count(),
-            Payment::where('status', 'success')->where('created_at', '>=', Carbon::now()->subMonth())->sum('amount')
+            'revenue_last_month' => (float) $lastMonthRevenue,
+            'revenue_prev_month' => (float) $prevMonthRevenue,
+            'revenue_growth_percent' => $growthRateRevenue,
+            'orders_last_month' => (int) $lastMonthOrders,
+            'orders_prev_month' => (int) $prevMonthOrders,
+            'orders_growth_percent' => $growthRateOrders,
         ];
 
+        // =========================
+        // Compact & return
+        // =========================
         return view('admin.dashboard', compact(
             'totalProducts','totalOrders','totalCategories','totalUsers','totalRevenue','successfulPayments',
             'recentOrders','recentUsers','recentPayments','notifications',
-            'ordersChartLabels','ordersChartData',
-            'revenueChartLabels','revenueChartData',
-            'usersChartLabels','usersChartData',
-            'productsChartData','paymentsChartData','dashboardLabels',
-            'revenueDistributionLabels','revenueDistributionData','growthRateData'
+            // monthly series
+            'months','ordersMonthly','revenueMonthly','paymentsMonthly','usersMonthly',
+            // distributions
+            'revenueDistributionLabels','revenueDistributionData',
+            'paymentMethodLabels','paymentMethodData',
+            // growth
+            'growthRateData'
         ));
     }
 }
