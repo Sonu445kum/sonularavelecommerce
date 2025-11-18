@@ -58,6 +58,11 @@ Route::get('/products/{slug}', [ProductController::class, 'show'])->name('produc
 // 🗂️ Category Browsing
 Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('category.show');
 
+Route::view('/faq', 'pages.faq')->name('faq');
+Route::view('/shipping-policy', 'pages.shipping-policy')->name('shipping.policy');
+Route::view('/return-refund-policy', 'pages.return-refund')->name('return.refund');
+Route::view('/privacy-policy', 'pages.privacy-policy')->name('privacy.policy');
+Route::view('/terms', 'pages.terms')->name('terms');
 
 
 //

@@ -18,47 +18,55 @@
         <div>
             <h6 class="text-white font-semibold mb-2">Support</h6>
             <ul class="space-y-2 text-sm">
-                <li><a href="#" class="hover:text-white">Contact Us</a></li>
-                <li><a href="#" class="hover:text-white">FAQs</a></li>
-                <li><a href="#" class="hover:text-white">Terms & Conditions</a></li>
-                <li><a href="#" class="hover:text-white">Privacy Policy</a></li>
+                <li><a href="{{ route('contact') }}" class="hover:text-white">Contact Us</a></li>
+               <li><a href="{{ route('faq') }}" class="hover:text-white">FAQs</a></li>
+                <li><a href="{{ route('shipping.policy') }}" class="hover:text-white">Shipping Policy</a></li>
+                <li><a href="{{ route('return.refund') }}" class="hover:text-white">Return & Refund Policy</a></li>
+                <li><a href="{{ route('terms') }}" class="hover:text-white">Terms & Conditions</a></li>
+                <li><a href="{{ route('privacy.policy') }}" class="hover:text-white">Privacy Policy</a></li>
+
             </ul>
         </div>
 
-        <div class="mt-4">
+
+           <div class="mt-4">
     <h6 class="text-white font-semibold mb-3 uppercase tracking-wide">Follow Us</h6>
+
     <div class="flex space-x-5 text-2xl">
+
         <!-- Facebook -->
         <a href="https://facebook.com/YourPageName" target="_blank" 
-           class="text-gray-400 hover:text-blue-500 transition duration-300">
+           class="text-gray-300 hover:text-blue-500 transition duration-300">
             <i class="bi bi-facebook"></i>
         </a>
 
         <!-- Instagram -->
         <a href="https://instagram.com/YourPageName" target="_blank" 
-           class="text-gray-400 hover:text-pink-500 transition duration-300">
+           class="text-gray-300 hover:text-pink-500 transition duration-300">
             <i class="bi bi-instagram"></i>
         </a>
 
-        <!-- Twitter / X -->
-        <a href="https://twitter.com/YourPageName" target="_blank" 
-           class="text-gray-400 hover:text-sky-400 transition duration-300">
+        <!-- Twitter/X -->
+        <a href="https://twitter.com/YourPageName" target="_blank"
+           class="text-gray-300 hover:text-sky-400 transition duration-300">
             <i class="bi bi-twitter-x"></i>
         </a>
 
         <!-- LinkedIn -->
-        <a href="https://linkedin.com/in/YourPageName" target="_blank" 
-           class="text-gray-400 hover:text-blue-600 transition duration-300">
+        <a href="https://linkedin.com/in/YourPageName" target="_blank"
+           class="text-gray-300 hover:text-blue-600 transition duration-300">
             <i class="bi bi-linkedin"></i>
         </a>
 
-        <!-- YouTube (optional) -->
-        <a href="https://youtube.com/@YourChannelName" target="_blank" 
-           class="text-gray-400 hover:text-red-500 transition duration-300">
+        <!-- YouTube -->
+        <a href="https://youtube.com/@YourChannelName" target="_blank"
+           class="text-gray-300 hover:text-red-500 transition duration-300">
             <i class="bi bi-youtube"></i>
         </a>
+
     </div>
 </div>
+
 
     </div>
 
