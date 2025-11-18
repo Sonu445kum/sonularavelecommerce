@@ -130,42 +130,54 @@
         </div>
     </div>
 
-    {{-- =======================
-        ORDER ITEMS
-    ======================== --}}
-    @if($payment->order->orderItems->count() > 0)
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Order Items</h5>
-        </div>
-        <div class="card-body p-0">
-            <table class="table table-striped table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Product</th>
-                        <th>Price (₹)</th>
-                        <th>Qty</th>
-                        <th>Subtotal (₹)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($payment->order->orderItems as $i => $item)
-                    <tr>
-                        <td>{{ $i + 1 }}</td>
-                        <td>
-                            {{ $item->product->title ?? $item->product->name ?? 'Deleted Product' }}
-                        </td>
-                        <td>{{ number_format($item->price, 2) }}</td>
-                        <td>{{ $item->quantity }}</td>
-                        <td>{{ number_format($item->price * $item->quantity, 2) }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+   {{-- =======================
+    ORDER ITEMS
+======================== --}}
+
+@if($payment->order->orderItems->count() > 0)
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0">Order Items</h5>
     </div>
-    @endif
+
+    <div class="card-body p-0">
+        <table class="table table-striped table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>#</th>
+                    <th>Product</th>
+                    <th>Price (₹)</th>
+                    <th>Qty</th>
+                    <th>Subtotal (₹)</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach($payment->order->orderItems as $i => $item)
+                <tr>
+                    <td>{{ $i + 1 }}</td>
+
+                    <td>
+                        {{ $item->product->title 
+                            ?? $item->product->name 
+                            ?? 'Deleted Product' }}
+                    </td>
+
+                    {{-- FIXED: use unit_price --}}
+                    <td>{{ number_format($item->unit_price, 2) }}</td>
+
+                    <td>{{ $item->quantity }}</td>
+
+                    {{-- FIXED: use total_price --}}
+                    <td>{{ number_format($item->total_price, 2) }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+</div>
+@endif
+
     @endif
 
     {{-- =======================
