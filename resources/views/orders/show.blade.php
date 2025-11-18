@@ -36,45 +36,48 @@
         </div>
     </div>
 
- {{-- ✅ Shipping Address --}}
+ {{-- Shipping Address --}}
 <div class="bg-white shadow-md rounded-xl p-6 mb-8">
     <h2 class="text-2xl font-semibold text-gray-800 mb-6 border-b pb-2">Shipping Address</h2>
 
     @php
-        // Prefer shipping_address object if available
-        $shipping = $order->shipping_address ?? null;
+        $shipping = $order->address; // addresses table record
     @endphp
 
-    @if($shipping || $order->name || $order->address)
+    @if($shipping)
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-gray-700">
             
-            {{-- Left Side: Contact Info --}}
+            {{-- Left Info --}}
             <div class="space-y-2">
-                <p><span class="font-semibold">Full Name:</span> {{ $order->name ?? ($shipping->title ?? 'N/A') }}</p>
-                <p><span class="font-semibold">Phone:</span> {{ $order->phone ?? ($shipping->phone ?? 'N/A') }}</p>
-                <p><span class="font-semibold">Email:</span> {{ $order->email ?? ($order->user->email ?? 'N/A') }}</p>
+                <p><span class="font-semibold">Full Name:</span> {{ $shipping->name }}</p>
+                <p><span class="font-semibold">Phone:</span> {{ $shipping->phone }}</p>
+                <p><span class="font-semibold">Email:</span> {{ $order->user->email }}</p>
             </div>
 
-            {{-- Right Side: Address --}}
+            {{-- Address --}}
             <div class="space-y-2">
-                <p><span class="font-semibold">Address:</span></p>
+                <p class="font-semibold">Address:</p>
+
                 <p>
-                    {{ $order->address ?? ($shipping->address_line1 ?? 'N/A') }}
-                    @if(!empty($shipping->address_line2))<br>{{ $shipping->address_line2 }}@endif
+                    {{ $shipping->address_line1 }}
+                    @if(!empty($shipping->address_line2))
+                        <br>{{ $shipping->address_line2 }}
+                    @endif
                 </p>
+
                 <p>
-                    {{ $shipping->city ?? ($address->city ?? 'N/A') }}, 
-                    {{ $shipping->state ?? ($address->state ?? 'N/A') }}<br>
-                    {{ $shipping->postal_code ?? ($address->postal_code ?? '') }}<br>
-                    {{ $shipping->country ?? ($address->country ?? 'India') }}
+                    {{ $shipping->city }}, {{ $shipping->state }} <br>
+                    {{ $shipping->postal_code }} <br>
+                    {{ $shipping->country }}
                 </p>
             </div>
 
         </div>
     @else
-        <p class="text-gray-500 italic">No shipping address available for this order.</p>
+        <p class="text-gray-500 italic">No shipping address found for this order.</p>
     @endif
 </div>
+
 
     {{-- ✅ Ordered Products --}}
 <div class="bg-white shadow-md rounded-xl p-6 mb-8">

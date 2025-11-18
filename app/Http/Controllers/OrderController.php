@@ -85,35 +85,35 @@ class OrderController extends Controller
             $order->load('address');
         }
 
-        // 🧠 Normalize Shipping Address
-        if ($order->address) {
-            $order->shipping_address = (object) [
-                'name' => $order->address->name ?? $order->user->name ?? 'N/A',
-                'phone' => $order->address->phone ?? $order->user->phone ?? 'N/A',
-                'address_line1' => $order->address->address_line1 ?? $order->address->address ?? null,
-                'city' => $order->address->city ?? null,
-                'state' => $order->address->state ?? null,
-                'postal_code' => $order->address->postal_code ?? null,
-                'country' => $order->address->country ?? 'India',
-            ];
-        } elseif (!empty($order->shipping_address)) {
-            if (is_array($order->shipping_address)) {
-                $order->shipping_address = (object) $order->shipping_address;
-            } elseif (is_string($order->shipping_address)) {
-                $decoded = json_decode($order->shipping_address, true);
-                $order->shipping_address = is_array($decoded) ? (object) $decoded : (object)[];
-            }
-        } else {
-            $order->shipping_address = (object) [
-                'name' => $order->name ?? $order->user->name ?? 'N/A',
-                'phone' => $order->phone ?? $order->user->phone ?? 'N/A',
-                'address_line1' => $order->address_line1 ?? $order->address ?? null,
-                'city' => $order->city ?? null,
-                'state' => $order->state ?? null,
-                'postal_code' => $order->postal_code ?? $order->pincode ?? null,
-                'country' => $order->country ?? 'India',
-            ];
-        }
+        // // 🧠 Normalize Shipping Address
+        // if ($order->address) {
+        //     $order->shipping_address = (object) [
+        //         'name' => $order->address->name ?? $order->user->name ?? 'N/A',
+        //         'phone' => $order->address->phone ?? $order->user->phone ?? 'N/A',
+        //         'address_line1' => $order->address->address_line1 ?? $order->address->address ?? null,
+        //         'city' => $order->address->city ?? null,
+        //         'state' => $order->address->state ?? null,
+        //         'postal_code' => $order->address->postal_code ?? null,
+        //         'country' => $order->address->country ?? 'India',
+        //     ];
+        // } elseif (!empty($order->shipping_address)) {
+        //     if (is_array($order->shipping_address)) {
+        //         $order->shipping_address = (object) $order->shipping_address;
+        //     } elseif (is_string($order->shipping_address)) {
+        //         $decoded = json_decode($order->shipping_address, true);
+        //         $order->shipping_address = is_array($decoded) ? (object) $decoded : (object)[];
+        //     }
+        // } else {
+        //     $order->shipping_address = (object) [
+        //         'name' => $order->name ?? $order->user->name ?? 'N/A',
+        //         'phone' => $order->phone ?? $order->user->phone ?? 'N/A',
+        //         'address_line1' => $order->address_line1 ?? $order->address ?? null,
+        //         'city' => $order->city ?? null,
+        //         'state' => $order->state ?? null,
+        //         'postal_code' => $order->postal_code ?? $order->pincode ?? null,
+        //         'country' => $order->country ?? 'India',
+        //     ];
+        // }
 
         // 🧾 Format Data
         $order->formatted_total = number_format($order->total, 2);

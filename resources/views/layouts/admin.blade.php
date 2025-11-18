@@ -167,19 +167,28 @@
     </div>
 
     {{-- 📦 Main Content --}}
-    <div class="content">
-        {{-- 🔝 Topbar --}}
-        <div class="topbar">
-            <h5>@yield('page_title', 'Admin Dashboard')</h5>
-            <div class="user-info">
-                <i class="bi bi-person-circle"></i>
-                <span>{{ Auth::user()->name ?? 'Admin' }}</span>
-            </div>
-        </div>
+  <div class="content">
+    {{-- 🔝 Topbar --}}
+    <div class="topbar d-flex justify-content-between align-items-center">
+        <h5 class="d-flex align-items-center gap-2 mb-0">
+            @yield('page_title', 'Admin Dashboard')
 
-        {{-- 💡 Dynamic Page Content --}}
-        @yield('content')
+            {{-- 🔙 Back To Shop Button --}}
+            <a href="{{ url('/') }}" class="btn btn-sm btn-primary ms-3">
+                <i class="bi bi-house-door-fill me-1"></i> Back To MyShop
+            </a>
+        </h5>
+
+        <div class="user-info d-flex align-items-center gap-2">
+            <i class="bi bi-person-circle"></i>
+            <span>{{ Auth::user()->name ?? 'Admin' }}</span>
+        </div>
     </div>
+
+    {{-- 💡 Dynamic Page Content --}}
+    @yield('content')
+</div>
+
 
     {{-- ✅ Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

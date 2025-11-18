@@ -34,10 +34,7 @@
     $shipping = $order->address ?? null;
 @endphp
   <div class="card-body">
-    <h5 class="card-title">Shipping Address</h5>
-
-    {{-- Debug: Check what $order->address contains --}}
-    <pre>{{ print_r($order->address, true) }}</pre>
+    <h2 class="card-title">Shipping Address</h2>
 
     @if($shipping)
         <p>
