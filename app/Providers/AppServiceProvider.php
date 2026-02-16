@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,11 +21,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //  Enable Bootstrap style pagination
-        
+        // Enable Tailwind pagination
         Paginator::useTailwind();
 
-        //  (Optional) You can also set default string length for older MySQL versions
-        // Schema::defaultStringLength(191);
+        // Force HTTPS in production (important for Render)
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }
